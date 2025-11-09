@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "SlashCommand(/speckit.specify)",
+      "Bash(git fetch:*)",
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
+      "Bash(.specify/scripts/bash/setup-plan.sh:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:arxiv.org)",
+      "SlashCommand(/speckit.tasks)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(python3:*)",
+      "Bash(find:*)",
+      "Bash(poetry install:*)",
+      "Bash(pip3:*)",
+      "Bash(tree:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,691 @@
+# Contrato de Eventos de Tareas Celery
+# Definiciones de tareas asíncronas para el sistema de análisis de tendencias en redes sociales
+
+version: 1.0.0
+description: |
+  Contrato para tareas asíncronas de Celery y formatos de mensajes.
+  Define firmas de tareas, payloads, tipos de retorno y manejo de errores.
+
+# ===== COLAS DE TAREAS =====
+queues:
+  youtube_collector:
+    description: Tareas de recolección de datos de YouTube
+    concurrency: 100
+    pool: gevent
+    prefetch_multiplier: 4
+    priority: 7
+
+  reddit_collector:
+    description: Tareas de recolección de datos de Reddit
+    concurrency: 100
+    pool: gevent
+    prefetch_multiplier: 4
+    priority: 6
+
+  mastodon_collector:
+    description: Tareas de recolección de datos de Mastodon
+    concurrency: 100
+    pool: gevent
+    prefetch_multiplier: 4
+    priority: 5
+
+  nlp_processing:
+    description: Tareas de procesamiento NLP (intensivas en CPU)
+    concurrency: 8
+    pool: prefork
+    prefetch_multiplier: 1
+    priority: 6
+
+  analytics:
+    description: Tareas de análisis y agregación
+    concurrency: 4
+    pool: prefork
+    prefetch_multiplier: 2
+    priority: 5
+
+  trends_validation:
+    description: Tareas de validación con Google Trends
+    concurrency: 2
+    pool: prefork
+    prefetch_multiplier: 1
+    priority: 3
+
+# ===== TAREAS DE RECOLECCIÓN =====
+tasks:
+  # ----- Recolección de YouTube -----
+  collectors.youtube.collect_batch:
+    description: Recolectar lote de videos de YouTube para un lineamiento
+    queue: youtube_collector
+    rate_limit: 100/day  # Basado en sistema de cuotas
+    max_retries: 3
+    retry_backoff: true
+    retry_backoff_max: 3600
+    soft_time_limit: 300
+    time_limit: 600
+    acks_late: true
+
+    args:
+      lineamiento_id:
+        type: uuid
+        required: true
+        description: ID del lineamiento a recolectar
+      keywords:
+        type: array[string]
+        required: true
+        description: Lista de keywords a buscar
+      batch_size:
+        type: integer
+        default: 50
+        description: Número de videos a recolectar
+
+    returns:
+      type: object
+      properties:
+        content_ids:
+          type: array[uuid]
+          description: IDs de contenido creado
+        total_collected:
+          type: integer
+        quota_used:
+          type: integer
+          description: Cuota de YouTube consumida
+        next_page_token:
+          type: string
+          nullable: true
+
+    raises:
+      - YouTubeQuotaExceededError:
+          description: Cuota diaria excedida
+          retry: false
+      - YouTubeRateLimitError:
+          description: Rate limit alcanzado
+          retry: true
+          countdown: 3600
+      - YouTubeAPIError:
+          description: Error de API de YouTube
+          retry: true
+
+    example_payload:
+      lineamiento_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+      keywords: ['inteligencia artificial', 'IA Colombia']
+      batch_size: 50
+
+    example_result:
+      content_ids:
+        - 'b2c3d4e5-f6a7-8901-bcde-f12345678901'
+        - 'c3d4e5f6-a7b8-9012-cdef-123456789012'
+      total_collected: 2
+      quota_used: 100
+      next_page_token: 'CAUQAA'
+
+  # ----- Recolección de Reddit -----
+  collectors.reddit.collect_batch:
+    description: Recolectar lote de publicaciones de Reddit para un lineamiento
+    queue: reddit_collector
+    rate_limit: 100/minute  # PRAW lo maneja automáticamente
+    max_retries: 3
+    retry_backoff: true
+    soft_time_limit: 300
+    time_limit: 600
+    acks_late: true
+
+    args:
+      lineamiento_id:
+        type: uuid
+        required: true
+      keywords:
+        type: array[string]
+        required: true
+      subreddits:
+        type: array[string]
+        default: ['all']
+        description: Subreddits específicos o 'all'
+      batch_size:
+        type: integer
+        default: 50
+
+    returns:
+      type: object
+      properties:
+        content_ids:
+          type: array[uuid]
+        total_collected:
+          type: integer
+        subreddits_searched:
+          type: array[string]
+
+    raises:
+      - RedditAPIError
+      - RedditAuthenticationError
+
+  # ----- Recolección de Mastodon -----
+  collectors.mastodon.collect_batch:
+    description: Recolectar lote de publicaciones de Mastodon (toots)
+    queue: mastodon_collector
+    max_retries: 3
+    retry_backoff: true
+    soft_time_limit: 300
+    acks_late: true
+
+    args:
+      lineamiento_id:
+        type: uuid
+        required: true
+      keywords:
+        type: array[string]
+        required: true
+      instance:
+        type: string
+        default: 'mastodon.social'
+        description: URL de la instancia de Mastodon
+      batch_size:
+        type: integer
+        default: 50
+
+    returns:
+      type: object
+      properties:
+        content_ids:
+          type: array[uuid]
+        total_collected:
+          type: integer
+        instance:
+          type: string
+
+  # ----- Tarea de Orquestación -----
+  collectors.collect_all_active_guidelines:
+    description: |
+      Tarea de orquestación que dispara la recolección para todos los lineamientos activos.
+      Programada cada 6 horas mediante Celery Beat.
+      Usa canvas group() para paralelizar entre lineamientos.
+    queue: analytics
+    schedule:
+      type: interval
+      period: hours
+      every: 6
+
+    args: {}
+
+    workflow: |
+      para cada lineamiento activo:
+        group(
+          collect_youtube_batch.s(guideline_id, keywords),
+          collect_reddit_batch.s(guideline_id, keywords),
+          collect_mastodon_batch.s(guideline_id, keywords),
+        )
+        → flatten_content_ids.s()
+        → create_nlp_chord.s()
+
+    returns:
+      type: object
+      properties:
+        guidelines_processed:
+          type: integer
+        total_content_collected:
+          type: integer
+
+# ===== TAREAS DE PROCESAMIENTO NLP =====
+  nlp.process_content:
+    description: |
+      Procesar un único elemento de contenido para modelado de temas, sentimiento, NER.
+      Tarea intensiva en CPU - se ejecuta con prefetch=1 para distribución equitativa.
+    queue: nlp_processing
+    max_retries: 2
+    retry_backoff: true
+    soft_time_limit: 120
+    time_limit: 300
+    acks_late: true
+
+    args:
+      content_id:
+        type: uuid
+        required: true
+        description: ID del contenido a procesar
+
+    returns:
+      type: object
+      properties:
+        content_id:
+          type: uuid
+        topics_identified:
+          type: array[object]
+          items:
+            tema_nombre: string
+            relevancia_score: float
+            keywords: array[string]
+        sentiment:
+          type: object
+          properties:
+            label: string  # positive, negative, neutral
+            score: float
+        entities:
+          type: object
+          properties:
+            persons: array[string]
+            organizations: array[string]
+            locations: array[string]
+        processing_time_ms:
+          type: integer
+
+    raises:
+      - NLPModelError
+      - ContentNotFoundError
+
+    example_result:
+      content_id: 'b2c3d4e5-f6a7-8901-bcde-f12345678901'
+      topics_identified:
+        - tema_nombre: 'Inteligencia Artificial en Educación'
+          relevancia_score: 0.87
+          keywords: ['IA', 'educación', 'aprendizaje']
+      sentiment:
+        label: 'positive'
+        score: 0.65
+      entities:
+        persons: ['Dr. García']
+        organizations: ['Universidad Nacional']
+        locations: ['Bogotá', 'Colombia']
+      processing_time_ms: 1250
+
+  nlp.batch_create_nlp_tasks:
+    description: |
+      Crea tareas NLP para un lote de IDs de contenido usando chord.
+      Espera a que TODAS las tareas NLP se completen, luego dispara análisis.
+    queue: nlp_processing
+    acks_late: true
+
+    args:
+      content_ids:
+        type: array[uuid]
+        required: true
+
+    workflow: |
+      chord(
+        group(process_content.s(id) for id in content_ids)
+      )(
+        analytics.aggregate_demographics.s()
+      )
+
+    returns:
+      type: object
+      properties:
+        nlp_tasks_created:
+          type: integer
+        chord_id:
+          type: string
+
+# ===== TAREAS DE ANÁLISIS =====
+  analytics.aggregate_demographics:
+    description: |
+      Agregar demografía de los resultados NLP.
+      Crea/actualiza la tabla demografia con jerarquía de 4 niveles.
+    queue: analytics
+    soft_time_limit: 300
+    time_limit: 600
+    acks_late: true
+
+    args:
+      nlp_results:
+        type: array[object]
+        description: Resultados del chord de tareas NLP
+
+    returns:
+      type: object
+      properties:
+        demographics_created:
+          type: integer
+        demographics_updated:
+          type: integer
+
+  analytics.detect_trending:
+    description: |
+      Detectar temas en tendencia basándose en tasa de crecimiento >50% en 24h (FR-027).
+      Crea registros en tendencias y marca es_tendencia=true.
+      Programada cada 30 minutos mediante Celery Beat.
+    queue: analytics
+    schedule:
+      type: interval
+      period: minutes
+      every: 30
+    soft_time_limit: 180
+    acks_late: true
+
+    args: {}
+
+    returns:
+      type: object
+      properties:
+        trending_topics:
+          type: array[object]
+          items:
+            tema_id: uuid
+            tema_nombre: string
+            tasa_crecimiento: float
+            volumen_actual: integer
+            volumen_anterior: integer
+            plataforma: string
+
+    triggers:
+      - task: alerts.send_trending_alert
+        condition: tasa_crecimiento > 0.50
+        payload:
+          tema_id: uuid
+          tema_nombre: string
+          tasa_crecimiento: float
+
+  analytics.calculate_trends_timeseries:
+    description: |
+      Calcular agregados horarios para la tabla tendencias.
+      Inserta en hypertable de TimescaleDB.
+    queue: analytics
+    schedule:
+      type: crontab
+      hour: '*'
+      minute: 0
+    soft_time_limit: 600
+
+    args:
+      fecha_hora:
+        type: datetime
+        description: Hora para calcular (por defecto: hora actual)
+
+    returns:
+      type: object
+      properties:
+        records_inserted:
+          type: integer
+        topics_processed:
+          type: integer
+
+# ===== TAREAS DE ALERTAS =====
+  alerts.send_trending_alert:
+    description: |
+      Enviar alerta para tema en tendencia mediante canales configurados.
+      Marca tendencias.alerta_enviada = true.
+    queue: analytics
+    max_retries: 3
+    retry_backoff: true
+
+    args:
+      tema_id:
+        type: uuid
+        required: true
+      tema_nombre:
+        type: string
+        required: true
+      tasa_crecimiento:
+        type: float
+        required: true
+      plataforma:
+        type: string
+      metadata:
+        type: object
+        description: Metadatos adicionales de la alerta
+
+    returns:
+      type: object
+      properties:
+        alert_sent:
+          type: boolean
+        channels:
+          type: array[string]
+          description: Canales donde se envió la alerta
+
+# ===== TAREAS DE VALIDACIÓN =====
+  validation.validate_with_google_trends:
+    description: |
+      Validar temas en tendencia con Google Trends (FR-021).
+      Identifica brechas: temas solo en datos de plataforma (FR-022).
+      Programada diariamente a las 2 AM mediante Celery Beat.
+    queue: trends_validation
+    rate_limit: 1/5s  # Conservador para pytrends
+    max_retries: 3
+    retry_backoff: 60
+    retry_backoff_max: 900
+    schedule:
+      type: crontab
+      hour: 2
+      minute: 0
+    soft_time_limit: 1800
+
+    args:
+      tema_id:
+        type: uuid
+        required: true
+      tema_nombre:
+        type: string
+        required: true
+      ubicacion:
+        type: string
+        default: 'CO'
+        description: Código de país para Google Trends
+
+    returns:
+      type: object
+      properties:
+        validacion_id:
+          type: uuid
+        validada:
+          type: boolean
+        indice_coincidencia:
+          type: float
+        en_google_trends:
+          type: boolean
+        solo_en_plataforma:
+          type: boolean
+        google_trends_data:
+          type: object
+          properties:
+            interest_over_time: array
+            related_queries: array
+
+    raises:
+      - GoogleTrendsRateLimitError:
+          retry: true
+          countdown: 300
+      - GoogleTrendsAPIError:
+          retry: true
+
+# ===== TAREAS DE MANTENIMIENTO =====
+  maintenance.cleanup_old_data:
+    description: |
+      Eliminar datos más antiguos de 7 días (FR-025).
+      TimescaleDB elimina automáticamente tendencias mediante política de retención.
+      Esta tarea limpia contenido_recolectado y tablas relacionadas.
+      Programada diariamente a las 3 AM mediante Celery Beat.
+    queue: analytics
+    schedule:
+      type: crontab
+      hour: 3
+      minute: 0
+    soft_time_limit: 3600
+
+    args: {}
+
+    returns:
+      type: object
+      properties:
+        content_deleted:
+          type: integer
+        topics_deleted:
+          type: integer
+        demographics_deleted:
+          type: integer
+
+  maintenance.update_quota_metrics:
+    description: |
+      Actualizar métricas de Prometheus para uso de cuotas de API.
+      Programada cada 5 minutos.
+    queue: analytics
+    schedule:
+      type: interval
+      period: minutes
+      every: 5
+
+    args: {}
+
+    returns:
+      type: object
+      properties:
+        metrics_updated:
+          type: array[string]
+          description: Lista de nombres de métricas actualizadas
+
+# ===== MANEJO DE ERRORES =====
+error_handling:
+  dead_letter_queue:
+    description: |
+      Las tareas fallidas se almacenan en la base de datos (modelo FailedTask).
+      No hay DLQ integrado en Celery - implementación personalizada.
+    table: failed_tasks
+    fields:
+      - task_name
+      - task_args
+      - exception_message
+      - traceback
+      - failed_at
+      - retry_count
+
+  circuit_breaker:
+    description: |
+      Previene fallos en cascada por plataforma.
+      Se abre después de 5 fallos en 5 minutos.
+    implementation: Clase CircuitBreaker respaldada por Redis
+    thresholds:
+      youtube: 5 fallos / 5 minutos
+      reddit: 5 fallos / 5 minutos
+      mastodon: 5 fallos / 5 minutos
+
+  retry_strategies:
+    api_rate_limit:
+      max_retries: 3
+      backoff: exponential
+      initial_delay: 60
+      max_delay: 3600
+
+    api_quota_exceeded:
+      max_retries: 0
+      action: pause_until_reset
+
+    connection_error:
+      max_retries: 3
+      backoff: exponential
+      initial_delay: 60
+
+    nlp_error:
+      max_retries: 2
+      backoff: fixed
+      delay: 60
+
+# ===== PATRONES DE CANVAS =====
+canvas_patterns:
+  daily_collection_workflow:
+    description: |
+      Flujo de trabajo principal para recolección y procesamiento diario de datos.
+      Disparado cada 6 horas para todos los lineamientos activos.
+    pattern: chain(group(collectors), flatten, chord(nlp, analytics))
+    diagram: |
+      Celery Beat (Cada 6 horas)
+          ↓
+      collect_all_active_guidelines
+          ↓
+      ┌─────────────────────────────┐
+      │  GROUP: Recolección Paralela│
+      │  ┌─────────┐  ┌─────────┐  │
+      │  │YouTube  │  │Reddit   │  │
+      │  │(batch)  │  │(batch)  │  │
+      │  └─────────┘  └─────────┘  │
+      │       ↓            ↓        │
+      │   [yt_ids]    [rd_ids]     │
+      └─────────────────────────────┘
+          ↓
+      flatten_content_ids
+          ↓
+      [id1, id2, ..., id100]
+          ↓
+      ┌─────────────────────────────┐
+      │  CHORD: NLP Paralelo        │
+      │  ┌─────┐ ┌─────┐ ┌─────┐   │
+      │  │NLP 1│ │NLP 2│ │NLP 3│...│
+      │  └─────┘ └─────┘ └─────┘   │
+      └─────────────────────────────┘
+          ↓ (esperar a que TODOS se completen)
+      aggregate_demographics
+          ↓
+      Verificar tendencias → send_alert si crecimiento >50%
+
+# ===== MONITOREO =====
+monitoring:
+  prometheus_metrics:
+    - name: celery_task_duration_seconds
+      type: histogram
+      labels: [task_name, queue]
+
+    - name: celery_task_total
+      type: counter
+      labels: [task_name, status]
+
+    - name: api_quota_usage
+      type: gauge
+      labels: [api_name, window]
+
+    - name: api_quota_exceeded_total
+      type: counter
+      labels: [api_name]
+
+    - name: nlp_processing_duration_seconds
+      type: histogram
+      labels: [model_name]
+
+  flower_dashboard:
+    url: http://localhost:5555
+    features:
+      - Monitoreo de tareas
+      - Estado de workers
+      - Historial de tareas
+      - Visualización de enrutamiento de tareas
+
+# ===== EJEMPLO DE EJECUCIÓN DE TAREA =====
+example_execution:
+  description: Ejemplo de flujo de trabajo completo
+  steps:
+    - step: 1
+      task: collectors.collect_all_active_guidelines
+      trigger: Celery Beat (cada 6 horas)
+      result: Dispara grupo de tareas de recolección
+
+    - step: 2
+      tasks: [collectors.youtube.collect_batch, collectors.reddit.collect_batch]
+      execution: Paralela
+      result:
+        youtube: {content_ids: [id1, id2], quota_used: 100}
+        reddit: {content_ids: [id3, id4]}
+
+    - step: 3
+      task: nlp.batch_create_nlp_tasks
+      args: {content_ids: [id1, id2, id3, id4]}
+      result: Crea chord con 4 tareas NLP
+
+    - step: 4
+      tasks: [nlp.process_content(id1), nlp.process_content(id2), ...]
+      execution: Paralela
+      result: Resultados NLP para cada contenido
+
+    - step: 5
+      task: analytics.aggregate_demographics
+      trigger: Callback de chord (después de que TODOS los NLP se completen)
+      result: {demographics_created: 12, demographics_updated: 5}
+
+    - step: 6
+      task: analytics.detect_trending
+      trigger: Programada (cada 30 min)
+      result: {trending_topics: [...]}
+
+    - step: 7
+      task: alerts.send_trending_alert
+      trigger: Condicional (si crecimiento >50%)
+      result: {alert_sent: true, channels: ['email', 'webhook']}
+
+    - step: 8
+      task: validation.validate_with_google_trends
+      trigger: Programada (diaria 2 AM)
+      result: {validada: true, indice_coincidencia: 0.85}

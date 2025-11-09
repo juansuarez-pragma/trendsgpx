@@ -1,0 +1,872 @@
+openapi: 3.0.3
+info:
+  title: API de Análisis de Tendencias en Redes Sociales
+  description: |
+    API para análisis de tendencias en redes sociales con segmentación demográfica.
+
+    ## Características
+    - Colección automática de contenido desde YouTube, Reddit, Mastodon
+    - Análisis NLP de temas y sentimientos
+    - Segmentación demográfica (Plataforma → Ubicación → Edad → Género)
+    - Validación con Google Trends
+    - Exportación en múltiples formatos (JSON, CSV, Excel)
+
+    ## Autenticación
+    Todas las peticiones requieren un API key en el header `X-API-Key`.
+  version: 1.0.0
+  contact:
+    name: Soporte de API
+    email: support@trendsgpx.com
+
+servers:
+  - url: https://api.trendsgpx.com/v1
+    description: Servidor de producción
+  - url: http://localhost:8000/v1
+    description: Servidor de desarrollo
+
+tags:
+  - name: lineamientos
+    description: Gestión de lineamientos de recolección
+  - name: tendencias
+    description: Consulta de tendencias y análisis
+  - name: export
+    description: Exportación de datos
+  - name: validacion
+    description: Validación de tendencias
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  # ========== LINEAMIENTOS ==========
+  /lineamientos:
+    get:
+      summary: Listar lineamientos
+      description: Obtiene todos los lineamientos de recolección
+      tags: [lineamientos]
+      parameters:
+        - name: activo
+          in: query
+          description: Filtrar por estado activo
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          description: Número de página
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          description: Tamaño de página
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Lista de lineamientos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    example: 42
+                  page:
+                    type: integer
+                    example: 1
+                  page_size:
+                    type: integer
+                    example: 20
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Lineamiento'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Crear lineamiento
+      description: Crea un nuevo lineamiento de recolección (FR-001)
+      tags: [lineamientos]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LineamientoCreate'
+      responses:
+        '201':
+          description: Lineamiento creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lineamiento'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /lineamientos/{lineamiento_id}:
+    get:
+      summary: Obtener lineamiento
+      description: Obtiene un lineamiento específico por ID
+      tags: [lineamientos]
+      parameters:
+        - $ref: '#/components/parameters/LineamientoId'
+      responses:
+        '200':
+          description: Lineamiento encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lineamiento'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Actualizar lineamiento
+      description: Actualiza un lineamiento existente (FR-005)
+      tags: [lineamientos]
+      parameters:
+        - $ref: '#/components/parameters/LineamientoId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LineamientoUpdate'
+      responses:
+        '200':
+          description: Lineamiento actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lineamiento'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Eliminar lineamiento
+      description: Elimina un lineamiento y todo su contenido recolectado
+      tags: [lineamientos]
+      parameters:
+        - $ref: '#/components/parameters/LineamientoId'
+      responses:
+        '204':
+          description: Lineamiento eliminado exitosamente
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ========== TENDENCIAS ==========
+  /tendencias:
+    get:
+      summary: Consultar tendencias
+      description: |
+        Obtiene tendencias con estructura jerárquica de 4 niveles (FR-017):
+        Plataforma → Ubicación → Edad → Género
+
+        Soporta filtros por fecha, plataforma, ubicación, edad, género.
+        Respuesta en <3 segundos para 100k items (SC-003).
+      tags: [tendencias]
+      parameters:
+        - name: fecha_inicio
+          in: query
+          description: Fecha inicio del rango (ISO 8601)
+          required: true
+          schema:
+            type: string
+            format: date-time
+            example: '2025-11-01T00:00:00Z'
+        - name: fecha_fin
+          in: query
+          description: Fecha fin del rango (ISO 8601)
+          required: true
+          schema:
+            type: string
+            format: date-time
+            example: '2025-11-08T23:59:59Z'
+        - name: plataforma
+          in: query
+          description: Filtrar por plataforma
+          schema:
+            type: string
+            enum: [youtube, reddit, mastodon]
+        - name: ubicacion
+          in: query
+          description: Filtrar por país o ciudad
+          schema:
+            type: string
+            example: 'Colombia'
+        - name: edad_rango
+          in: query
+          description: Filtrar por rango de edad
+          schema:
+            type: string
+            enum: ['18-24', '25-34', '35-44', '45-54', '55+', 'unknown']
+        - name: genero
+          in: query
+          description: Filtrar por género
+          schema:
+            type: string
+            enum: [male, female, other, unknown]
+        - name: solo_tendencia
+          in: query
+          description: Solo mostrar temas marcados como tendencia
+          schema:
+            type: boolean
+            default: false
+        - name: limite
+          in: query
+          description: Número máximo de resultados
+          schema:
+            type: integer
+            default: 50
+            maximum: 500
+      responses:
+        '200':
+          description: Tendencias encontradas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TendenciasResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /tendencias/{tema_id}/historico:
+    get:
+      summary: Historial de tendencia
+      description: Obtiene serie temporal de un tema específico (FR-016)
+      tags: [tendencias]
+      parameters:
+        - name: tema_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: granularidad
+          in: query
+          description: Granularidad temporal
+          schema:
+            type: string
+            enum: [horaria, diaria]
+            default: horaria
+        - name: fecha_inicio
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: fecha_fin
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Serie temporal del tema
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tema_id:
+                    type: string
+                    format: uuid
+                  tema_nombre:
+                    type: string
+                  serie_temporal:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        fecha_hora:
+                          type: string
+                          format: date-time
+                        volumen_menciones:
+                          type: integer
+                        tasa_crecimiento:
+                          type: number
+                          format: float
+                        es_tendencia:
+                          type: boolean
+
+  /tendencias/alertas:
+    get:
+      summary: Obtener alertas de tendencias
+      description: |
+        Obtiene temas con crecimiento >50% en 24h (FR-027).
+        Incluye solo tendencias no notificadas.
+      tags: [tendencias]
+      parameters:
+        - name: fecha_inicio
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: umbral_crecimiento
+          in: query
+          description: Umbral de crecimiento (predeterminado 0.50)
+          schema:
+            type: number
+            format: float
+            default: 0.50
+            minimum: 0
+            maximum: 10
+      responses:
+        '200':
+          description: Alertas de tendencias
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_alertas:
+                    type: integer
+                  alertas:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        tema_id:
+                          type: string
+                          format: uuid
+                        tema_nombre:
+                          type: string
+                        volumen_actual:
+                          type: integer
+                        volumen_anterior:
+                          type: integer
+                        tasa_crecimiento:
+                          type: number
+                          format: float
+                        plataforma:
+                          type: string
+                        fecha_deteccion:
+                          type: string
+                          format: date-time
+
+  # ========== VALIDACIÓN ==========
+  /validacion/trends:
+    get:
+      summary: Validación con Google Trends
+      description: |
+        Valida tendencias detectadas con datos de Google Trends (FR-021).
+        Identifica gaps: tendencias solo en plataforma (FR-022).
+      tags: [validacion]
+      parameters:
+        - name: tema_nombre
+          in: query
+          required: true
+          description: Nombre del tema a validar
+          schema:
+            type: string
+        - name: ubicacion
+          in: query
+          description: País para Google Trends
+          schema:
+            type: string
+            example: 'CO'
+        - name: fecha_inicio
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: fecha_fin
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Resultados de validación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidacionResponse'
+
+  /validacion/gaps:
+    get:
+      summary: Análisis de gaps
+      description: |
+        Identifica tendencias que SOLO aparecen en plataformas (FR-022).
+        Ventaja competitiva: detección temprana antes que Google Trends.
+      tags: [validacion]
+      parameters:
+        - name: fecha_inicio
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: fecha_fin
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Tendencias exclusivas de plataforma
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_gaps:
+                    type: integer
+                  gaps:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        tema_nombre:
+                          type: string
+                        plataforma:
+                          type: string
+                        volumen_menciones:
+                          type: integer
+                        tasa_crecimiento:
+                          type: number
+                        en_google_trends:
+                          type: boolean
+                          example: false
+                        razon_gap:
+                          type: string
+                          description: Explicación del gap
+
+  # ========== EXPORTACIÓN ==========
+  /export/tendencias:
+    get:
+      summary: Exportar tendencias
+      description: |
+        Exporta tendencias en múltiples formatos (FR-019, FR-020).
+        Formatos soportados: JSON, CSV, Excel.
+      tags: [export]
+      parameters:
+        - name: formato
+          in: query
+          required: true
+          description: Formato de exportación
+          schema:
+            type: string
+            enum: [json, csv, xlsx]
+        - name: fecha_inicio
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: fecha_fin
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: plataforma
+          in: query
+          schema:
+            type: string
+        - name: incluir_demografia
+          in: query
+          description: Incluir segmentación demográfica
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Archivo exportado
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Exportación JSON
+            text/csv:
+              schema:
+                type: string
+                description: Exportación CSV
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+                description: Exportación Excel
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: 'attachment; filename="tendencias_2025-11-08.xlsx"'
+
+  # ========== HEALTH & STATUS ==========
+  /health:
+    get:
+      summary: Verificación de estado
+      description: Verifica estado del servicio
+      tags: [system]
+      security: []
+      responses:
+        '200':
+          description: Servicio operacional
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: 'healthy'
+                  version:
+                    type: string
+                    example: '1.0.0'
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /status/coleccion:
+    get:
+      summary: Estado de recolección
+      description: |
+        Muestra estado de recolección por plataforma (FR-007).
+        Incluye cuotas de API, próximas ejecuciones, errores recientes.
+      tags: [system]
+      responses:
+        '200':
+          description: Estado de recolección
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plataformas:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        nombre:
+                          type: string
+                          example: 'youtube'
+                        estado:
+                          type: string
+                          enum: [activo, pausado, error]
+                        cuota_usada:
+                          type: integer
+                          example: 7500
+                        cuota_limite:
+                          type: integer
+                          example: 10000
+                        cuota_reset:
+                          type: string
+                          format: date-time
+                        proxima_recoleccion:
+                          type: string
+                          format: date-time
+                        items_recolectados_hoy:
+                          type: integer
+
+# ========== COMPONENTS ==========
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key estática para autenticación (FR-023)
+
+  parameters:
+    LineamientoId:
+      name: lineamiento_id
+      in: path
+      required: true
+      description: ID del lineamiento
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    # ===== Lineamiento Schemas =====
+    Lineamiento:
+      type: object
+      required:
+        - id
+        - nombre
+        - keywords
+        - plataformas
+        - activo
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: 'Tendencias Tecnología Colombia'
+        descripcion:
+          type: string
+          nullable: true
+        keywords:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          example: ['inteligencia artificial', 'IA', '#TechColombia']
+        plataformas:
+          type: array
+          items:
+            type: string
+            enum: [youtube, reddit, mastodon]
+          minItems: 1
+          example: ['youtube', 'reddit']
+        activo:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    LineamientoCreate:
+      type: object
+      required:
+        - nombre
+        - keywords
+        - plataformas
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 255
+        descripcion:
+          type: string
+        keywords:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        plataformas:
+          type: array
+          items:
+            type: string
+            enum: [youtube, reddit, mastodon]
+          minItems: 1
+        activo:
+          type: boolean
+          default: true
+
+    LineamientoUpdate:
+      type: object
+      properties:
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        plataformas:
+          type: array
+          items:
+            type: string
+        activo:
+          type: boolean
+
+    # ===== Tendencias Schemas =====
+    TendenciasResponse:
+      type: object
+      description: |
+        Respuesta jerárquica de 4 niveles (FR-017):
+        Plataforma → Ubicación → Edad → Género
+      properties:
+        fecha_inicio:
+          type: string
+          format: date-time
+        fecha_fin:
+          type: string
+          format: date-time
+        total_temas:
+          type: integer
+        plataformas:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlataformaTendencias'
+
+    PlataformaTendencias:
+      type: object
+      properties:
+        plataforma:
+          type: string
+          enum: [youtube, reddit, mastodon]
+        total_menciones:
+          type: integer
+        ubicaciones:
+          type: array
+          items:
+            $ref: '#/components/schemas/UbicacionTendencias'
+
+    UbicacionTendencias:
+      type: object
+      properties:
+        ubicacion:
+          type: string
+          example: 'Colombia'
+        total_menciones:
+          type: integer
+        edad_rangos:
+          type: array
+          items:
+            $ref: '#/components/schemas/EdadTendencias'
+
+    EdadTendencias:
+      type: object
+      properties:
+        edad_rango:
+          type: string
+          enum: ['18-24', '25-34', '35-44', '45-54', '55+', 'unknown']
+        total_menciones:
+          type: integer
+        generos:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeneroTendencias'
+
+    GeneroTendencias:
+      type: object
+      properties:
+        genero:
+          type: string
+          enum: [male, female, other, unknown]
+        total_menciones:
+          type: integer
+        temas:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tema'
+
+    Tema:
+      type: object
+      properties:
+        tema_id:
+          type: string
+          format: uuid
+        tema_nombre:
+          type: string
+        volumen_menciones:
+          type: integer
+        tasa_crecimiento:
+          type: number
+          format: float
+        sentimiento:
+          type: string
+          enum: [positive, negative, neutral, mixed]
+        sentimiento_score:
+          type: number
+          format: float
+        es_tendencia:
+          type: boolean
+        keywords:
+          type: array
+          items:
+            type: string
+
+    # ===== Validación Schemas =====
+    ValidacionResponse:
+      type: object
+      properties:
+        tema_nombre:
+          type: string
+        validada:
+          type: boolean
+        indice_coincidencia:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        en_google_trends:
+          type: boolean
+        solo_en_plataforma:
+          type: boolean
+        google_trends_data:
+          type: object
+          properties:
+            interest_over_time:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  value:
+                    type: integer
+            related_queries:
+              type: array
+              items:
+                type: string
+
+    # ===== Error Schemas =====
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: 'ValidationError'
+        message:
+          type: string
+          example: 'El campo keywords es requerido'
+        details:
+          type: object
+          nullable: true
+
+  responses:
+    Unauthorized:
+      description: API key inválida o faltante
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: 'Unauthorized'
+            message: 'API key inválida o faltante en header X-API-Key'
+
+    BadRequest:
+      description: Petición inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: 'BadRequest'
+            message: 'Parámetros inválidos'
+
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: 'NotFound'
+            message: 'Lineamiento no encontrado'
+
+    InternalServerError:
+      description: Error interno del servidor
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: 'InternalServerError'
+            message: 'Error procesando la petición'
