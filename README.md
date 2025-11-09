@@ -6,6 +6,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)
 ![TimescaleDB](https://img.shields.io/badge/TimescaleDB-enabled-orange.svg)
+![Speckit](https://img.shields.io/badge/docs-Speckit-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 **Sistema de Análisis de Tendencias en Redes Sociales con Segmentación Demográfica y NLP**
@@ -23,6 +24,7 @@
 ## 📋 Tabla de Contenidos
 
 - [Características](#características)
+- [Documentación](#documentación)
 - [Requisitos](#requisitos)
 - [Instalación](#instalación)
   - [Instalación con Docker](#instalación-con-docker-recomendado)
@@ -87,6 +89,56 @@ Plataforma → Ubicación (País/Ciudad) → Edad → Género
 - Continuous aggregates (hora/día)
 - Retention policy automática
 - Full-text search en español
+
+## 📚 Documentación
+
+Este proyecto incluye documentación completa desarrollada con la metodología **Speckit**.
+
+### 📖 Documentación Principal
+
+| Documento | Descripción | Tamaño |
+|-----------|-------------|--------|
+| [📋 Índice de Documentación](docs/README.md) | Guía completa de toda la documentación | - |
+| [📝 Especificación Funcional](docs/speckit/spec.md) | User stories, requisitos y criterios de aceptación | 28 KB |
+| [🏗️ Plan de Implementación](docs/speckit/plan.md) | Arquitectura técnica y stack tecnológico | 14 KB |
+| [✅ Lista de Tareas](docs/speckit/tasks.md) | 148 tareas organizadas en 5 fases (100% completadas) | 39 KB |
+| [🗄️ Modelo de Datos](docs/speckit/data-model.md) | Esquema de base de datos completo | 23 KB |
+| [🔬 Investigación Técnica](docs/speckit/research.md) | Análisis de APIs, bibliotecas y arquitectura | 77 KB |
+| [🤖 Investigación NLP](docs/speckit/nlp-research.md) | Deep dive en NLP para español | 40 KB |
+| [🚀 Guía de Inicio Rápido](docs/speckit/quickstart.md) | Setup para desarrolladores | 16 KB |
+
+### 📄 Contratos de API
+
+| Documento | Descripción |
+|-----------|-------------|
+| [OpenAPI Specification](docs/speckit/contracts/openapi.yaml) | 14 endpoints REST documentados |
+| [Celery Events](docs/speckit/contracts/events.yaml) | 11 tareas asíncronas especificadas |
+
+### 🔧 Metodología Speckit
+
+Este proyecto fue construido usando **Speckit**, una metodología estructurada que garantiza:
+
+- ✅ **Trazabilidad completa**: Desde requisitos hasta código
+- ✅ **Documentación actualizada**: Sincronizada con la implementación
+- ✅ **Reproducibilidad**: El proyecto puede reconstruirse desde los docs
+- ✅ **Onboarding rápido**: Nuevos desarrolladores pueden entender el sistema completo
+
+**Comandos Speckit disponibles** (ver [docs/.claude/commands/](docs/.claude/commands/)):
+- `/speckit.specify` - Crear/actualizar especificación
+- `/speckit.plan` - Diseñar arquitectura
+- `/speckit.tasks` - Generar lista de tareas
+- `/speckit.implement` - Ejecutar implementación
+- `/speckit.analyze` - Verificar consistencia
+
+### 📊 Estadísticas de Documentación
+
+```
+📦 31 archivos de documentación
+📝 ~240,000 caracteres
+✅ 148 tareas (100% completadas)
+🎯 5 fases implementadas
+📖 2 contratos de API (OpenAPI + Events)
+```
 
 ## 📦 Requisitos
 
@@ -519,7 +571,7 @@ Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](L
 
 ## 👥 Autores
 
-- **Tu Nombre** - *Trabajo Inicial* - [TuGitHub](https://github.com/tu-usuario)
+- **Juan Suarez** - *Desarrollo Inicial* - [@juansuarez-pragma](https://github.com/juansuarez-pragma)
 
 ## 🙏 Agradecimientos
 
