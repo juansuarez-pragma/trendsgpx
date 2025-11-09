@@ -100,3 +100,4 @@ alembic/__pycache__/
 
 # Claude Code
 .claude/
+!.claude/init.md
