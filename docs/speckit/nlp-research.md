@@ -1,157 +1,157 @@
-# Research Report: Spanish NLP Models for Social Media Trends Analysis
+# Reporte de Investigación: Modelos NLP en Español para Análisis de Tendencias en Redes Sociales
 
-**Feature**: 001-social-trends-analysis
-**Research Date**: 2025-11-08
-**Focus**: NLP models/libraries for Spanish topic modeling, sentiment analysis, and NER
+**Funcionalidad**: 001-social-trends-analysis
+**Fecha de Investigación**: 2025-11-08
+**Enfoque**: Modelos/bibliotecas NLP para modelado de temas, análisis de sentimiento y NER en español
 
-## Executive Summary
+## Resumen Ejecutivo
 
-This research evaluates NLP models and libraries for Spanish language processing across topic modeling, sentiment analysis, and named entity recognition (NER) for social media content from multiple Spanish-speaking regions (Colombia, Mexico, Argentina, Spain).
+Esta investigación evalúa modelos y bibliotecas NLP para procesamiento de lenguaje en español en las áreas de modelado de temas, análisis de sentimiento y reconocimiento de entidades nombradas (NER) para contenido de redes sociales de múltiples regiones hispanohablantes (Colombia, México, Argentina, España).
 
-**Key Recommendations:**
-- **spaCy Model**: `es_core_news_lg` (best accuracy-to-performance ratio)
-- **BERT Model**: RoBERTuito for social media; BETO for general text
-- **Topic Modeling**: BERTopic with paraphrase-multilingual-MiniLM-L12-v2
-- **Sentiment Analysis**: pysentimiento (RoBERTuito-based) or BETO fine-tuned models
-- **NER**: PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus for transformers; spaCy es_core_news_lg for pipeline
+**Recomendaciones Clave:**
+- **Modelo spaCy**: `es_core_news_lg` (mejor relación precisión-rendimiento)
+- **Modelo BERT**: RoBERTuito para redes sociales; BETO para texto general
+- **Modelado de Temas**: BERTopic con paraphrase-multilingual-MiniLM-L12-v2
+- **Análisis de Sentimiento**: pysentimiento (basado en RoBERTuito) o modelos BETO afinados
+- **NER**: PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus para transformers; spaCy es_core_news_lg para pipeline
 
-## 1. spaCy Spanish Models
+## 1. Modelos spaCy en Español
 
-### Available Models
+### Modelos Disponibles
 
-spaCy offers three Spanish core news models plus a transformer variant:
-- `es_core_news_sm` - Small (12MB)
-- `es_core_news_md` - Medium (43MB) - 20k unique vectors for ~500k words
-- `es_core_news_lg` - Large (543MB) - ~500k word vectors
-- `es_dep_news_trf` - Transformer-based (most accurate but slowest)
+spaCy ofrece tres modelos core news en español más una variante basada en transformers:
+- `es_core_news_sm` - Pequeño (12MB)
+- `es_core_news_md` - Mediano (43MB) - 20k vectores únicos para ~500k palabras
+- `es_core_news_lg` - Grande (543MB) - ~500k vectores de palabras
+- `es_dep_news_trf` - Basado en transformers (más preciso pero más lento)
 
-### Key Differences
+### Diferencias Clave
 
-**Training**: All models (sm, md, lg) were trained on the same data (UD Spanish AnCora + WikiNER) under identical conditions. The only difference is the word vectors included.
+**Entrenamiento**: Todos los modelos (sm, md, lg) fueron entrenados con los mismos datos (UD Spanish AnCora + WikiNER) bajo condiciones idénticas. La única diferencia son los vectores de palabras incluidos.
 
-**Performance**: Larger models are generally more accurate, though performance differences are often marginal. The lg model provides the best accuracy while the sm model offers faster loading and processing.
+**Rendimiento**: Los modelos más grandes son generalmente más precisos, aunque las diferencias de rendimiento suelen ser marginales. El modelo lg proporciona la mejor precisión mientras que el modelo sm ofrece carga y procesamiento más rápidos.
 
-**Components**: tok2vec, morphologizer, parser, senter, ner, attribute_ruler, lemmatizer
+**Componentes**: tok2vec, morphologizer, parser, senter, ner, attribute_ruler, lemmatizer
 
-### Regional Dialect Performance
+### Rendimiento en Dialectos Regionales
 
-**Training Data**: Models are trained on UD Spanish-AnCora corpus, which is primarily standard written European Spanish.
+**Datos de Entrenamiento**: Los modelos están entrenados en el corpus UD Spanish-AnCora, que es principalmente español europeo estándar escrito.
 
-**Performance Degradation**:
-- European Spanish dialects: No significant difference detected (0.98-0.99 accuracy)
-- Spoken Spanish: Accuracy drops to 0.94-0.95
-- Latin American Spanish: Limited data available, but anecdotal evidence suggests <80% accuracy on Mexican Spanish news text
-- Colombian, Mexican, Argentine variants: No specific benchmarks found, but expected degradation exists
+**Degradación de Rendimiento**:
+- Dialectos del español europeo: No se detecta diferencia significativa (0.98-0.99 de precisión)
+- Español hablado: La precisión cae a 0.94-0.95
+- Español latinoamericano: Datos limitados disponibles, pero evidencia anecdótica sugiere <80% de precisión en texto de noticias mexicanas
+- Variantes colombiana, mexicana, argentina: No se encontraron benchmarks específicos, pero se espera degradación
 
-**Known Issues**:
-- Spanish NER is less effective than English at recognizing entities
-- Particularly poor at distinguishing entity types (ORG vs LOC vs PER)
-- Performance degrades on contemporary Latin American news not well-covered in Wikipedia training data
+**Problemas Conocidos**:
+- El NER en español es menos efectivo que en inglés para reconocer entidades
+- Particularmente pobre distinguiendo tipos de entidades (ORG vs LOC vs PER)
+- El rendimiento se degrada en noticias latinoamericanas contemporáneas no bien cubiertas en los datos de entrenamiento de Wikipedia
 
-### Recommendation for Your Project
+### Recomendación para Tu Proyecto
 
-**Use `es_core_news_lg` as the primary model**:
-- Provides best accuracy for NER and general NLP tasks
-- Free and open source
-- Good starting point, though you should monitor accuracy across regional content
-- **Expected regional degradation**: Likely 10-15% for Latin American variants, meeting your <10% requirement may be challenging with spaCy alone
+**Usar `es_core_news_lg` como modelo principal**:
+- Proporciona la mejor precisión para NER y tareas NLP generales
+- Gratuito y de código abierto
+- Buen punto de partida, aunque deberías monitorear la precisión en contenido regional
+- **Degradación regional esperada**: Probablemente 10-15% para variantes latinoamericanas, cumplir tu requisito de <10% puede ser desafiante solo con spaCy
 
-**Mitigation Strategy**:
-- Supplement with transformer-based models for critical tasks
-- Consider creating custom dictionaries for regional entities (departments, provinces by country)
-- Test extensively with content from each target region
+**Estrategia de Mitigación**:
+- Complementar con modelos basados en transformers para tareas críticas
+- Considerar crear diccionarios personalizados para entidades regionales (departamentos, provincias por país)
+- Probar extensivamente con contenido de cada región objetivo
 
-## 2. BERT Models for Spanish
+## 2. Modelos BERT para Español
 
 ### BETO (Spanish BERT)
 
-**Model**: dccuchile/bert-base-spanish-wwm-cased / bert-base-spanish-wwm-uncased
-**Training**: ~31k BPE subwords, Whole Word Masking, 2M steps
-**Performance**:
-- SQuAD v2.0 Spanish: 76.51% exact match, 86.08% F1 score
-- Available in both cased and uncased versions
+**Modelo**: dccuchile/bert-base-spanish-wwm-cased / bert-base-spanish-wwm-uncased
+**Entrenamiento**: ~31k subpalabras BPE, Whole Word Masking, 2M pasos
+**Rendimiento**:
+- SQuAD v2.0 español: 76.51% coincidencia exacta, 86.08% puntuación F1
+- Disponible en versiones cased y uncased
 
-**Best For**: General Spanish NLP tasks, formal text
+**Mejor Para**: Tareas NLP generales en español, texto formal
 
 ### RoBERTuito
 
-**Model**: pysentimiento/robertuito-sentiment-analysis
-**Training**: 600M tweets (mostly Spanish, some English/Portuguese)
-**Performance**: Outperforms BETO, BERTin, and RoBERTa-BNE on user-generated text benchmarks
+**Modelo**: pysentimiento/robertuito-sentiment-analysis
+**Entrenamiento**: 600M tweets (principalmente español, algo de inglés/portugués)
+**Rendimiento**: Supera a BETO, BERTin y RoBERTa-BNE en benchmarks de texto generado por usuarios
 
-**Regional Support**: Explicitly supports multiple Spanish dialects
-- Trained on diverse Twitter data including regional variations
-- More compact representations than BETO for social media domain
-- **Case Studies**: Argentina (hate speech), Colombia (hate speech detection)
+**Soporte Regional**: Soporta explícitamente múltiples dialectos del español
+- Entrenado en datos diversos de Twitter incluyendo variaciones regionales
+- Representaciones más compactas que BETO para el dominio de redes sociales
+- **Casos de Estudio**: Argentina (discurso de odio), Colombia (detección de discurso de odio)
 
-**Best For**: Social media content (Twitter, TikTok, Instagram, Facebook)
+**Mejor Para**: Contenido de redes sociales (Twitter, TikTok, Instagram, Facebook)
 
 ### MarIA (RoBERTa-BNE)
 
-**Model**: PlanTL-GOB-ES/roberta-base-bne
-**Training**: 570GB from National Library of Spain web crawlings (2009-2019)
-**Performance**: Best results for financial sentiment analysis (tied with BETO)
-**Tokenization**: Byte-level Byte-Pair Encoding (BPE)
+**Modelo**: PlanTL-GOB-ES/roberta-base-bne
+**Entrenamiento**: 570GB de rastreos web de la Biblioteca Nacional de España (2009-2019)
+**Rendimiento**: Mejores resultados para análisis de sentimiento financiero (empatado con BETO)
+**Tokenización**: Byte-level Byte-Pair Encoding (BPE)
 
-**Best For**: Formal Spanish text, financial analysis, general domains
+**Mejor Para**: Texto formal en español, análisis financiero, dominios generales
 
-### Comparison Summary
+### Resumen Comparativo
 
-| Model | Best Use Case | Training Data | Social Media Performance |
+| Modelo | Mejor Caso de Uso | Datos de Entrenamiento | Rendimiento en Redes Sociales |
 |-------|---------------|---------------|-------------------------|
-| BETO | General Spanish | Mixed corpus | Good |
-| RoBERTuito | Social media | 600M tweets | **Excellent** |
-| MarIA (RoBERTa-BNE) | Formal text | 570GB web crawl | Good |
+| BETO | Español general | Corpus mixto | Bueno |
+| RoBERTuito | Redes sociales | 600M tweets | **Excelente** |
+| MarIA (RoBERTa-BNE) | Texto formal | 570GB web crawl | Bueno |
 
-### Recommendation for Your Project
+### Recomendación para Tu Proyecto
 
-**Primary Model: RoBERTuito**
-- Specifically trained on social media text (Twitter)
-- Outperforms other models on user-generated content
-- Supports multiple Spanish dialects
-- Free and open source via Hugging Face
+**Modelo Primario: RoBERTuito**
+- Específicamente entrenado en texto de redes sociales (Twitter)
+- Supera a otros modelos en contenido generado por usuarios
+- Soporta múltiples dialectos del español
+- Gratuito y de código abierto vía Hugging Face
 
-**Alternative: BETO**
-- Use for more formal content if needed
-- Good general-purpose Spanish BERT
-- Both cased and uncased versions available
+**Alternativa: BETO**
+- Usar para contenido más formal si es necesario
+- Buen BERT de propósito general para español
+- Disponible en versiones cased y uncased
 
-**Code Example**:
+**Ejemplo de Código**:
 ```python
 from transformers import AutoTokenizer, AutoModel
 
-# For social media (recommended)
+# Para redes sociales (recomendado)
 tokenizer = AutoTokenizer.from_pretrained("pysentimiento/robertuito-base-uncased")
 model = AutoModel.from_pretrained("pysentimiento/robertuito-base-uncased")
 
-# For general text (alternative)
+# Para texto general (alternativa)
 tokenizer = AutoTokenizer.from_pretrained("dccuchile/bert-base-spanish-wwm-cased")
 model = AutoModel.from_pretrained("dccuchile/bert-base-spanish-wwm-cased")
 ```
 
-## 3. BERTopic for Topic Modeling
+## 3. BERTopic para Modelado de Temas
 
-### Configuration for Spanish
+### Configuración para Español
 
-BERTopic supports Spanish through multilingual embedding models.
+BERTopic soporta español mediante modelos de embeddings multilingües.
 
-**Default Multilingual Model**: `paraphrase-multilingual-MiniLM-L12-v2`
-- Supports 50+ languages including Spanish
-- 384-dimensional embeddings
-- Max sequence length: 128 tokens
-- Good balance of speed and accuracy
+**Modelo Multilingüe por Defecto**: `paraphrase-multilingual-MiniLM-L12-v2`
+- Soporta 50+ idiomas incluyendo español
+- Embeddings de 384 dimensiones
+- Longitud máxima de secuencia: 128 tokens
+- Buen balance entre velocidad y precisión
 
-**Higher Quality Alternative**: `paraphrase-multilingual-mpnet-base-v2`
-- Better quality but slower
-- Recommended for production if performance allows
+**Alternativa de Mayor Calidad**: `paraphrase-multilingual-mpnet-base-v2`
+- Mejor calidad pero más lento
+- Recomendado para producción si el rendimiento lo permite
 
-### Configuration for 1,000 Documents
+### Configuración para 1,000 Documentos
 
-Your requirement: Identify 5-15 topics from 1,000 items with >70% accuracy
+Tu requisito: Identificar 5-15 temas de 1,000 elementos con >70% de precisión
 
-**Challenge**: 1,000 documents is considered a small dataset for BERTopic, making it difficult to extract topics properly.
+**Desafío**: 1,000 documentos se considera un dataset pequeño para BERTopic, dificultando la extracción apropiada de temas.
 
-**Recommended Parameters**:
+**Parámetros Recomendados**:
 ```python
 from bertopic import BERTopic
 from sentence_transformers import SentenceTransformer
@@ -159,137 +159,137 @@ from umap import UMAP
 from hdbscan import HDBSCAN
 from sklearn.feature_extraction.text import CountVectorizer
 
-# Embedding model
+# Modelo de embedding
 embedding_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
 
-# UMAP for dimensionality reduction
+# UMAP para reducción de dimensionalidad
 umap_model = UMAP(
-    n_neighbors=15,  # Can lower to 10-12 for smaller datasets
-    n_components=5,   # Standard setting
+    n_neighbors=15,  # Puede reducirse a 10-12 para datasets pequeños
+    n_components=5,   # Configuración estándar
     min_dist=0.0,
     metric='cosine',
-    random_state=42   # For reproducibility
+    random_state=42   # Para reproducibilidad
 )
 
-# HDBSCAN for clustering
+# HDBSCAN para clustering
 hdbscan_model = HDBSCAN(
-    min_cluster_size=15,      # For 1000 docs: 15-50 range
-    min_samples=5,            # Lower than min_cluster_size to reduce outliers
+    min_cluster_size=15,      # Para 1000 docs: rango 15-50
+    min_samples=5,            # Menor que min_cluster_size para reducir outliers
     metric='euclidean',
     cluster_selection_method='eom',
     prediction_data=True
 )
 
-# CountVectorizer for topic representation
+# CountVectorizer para representación de temas
 vectorizer_model = CountVectorizer(
-    stop_words='spanish',     # Remove Spanish stop words
-    min_df=2,                 # Ignore terms in fewer than 2 documents
-    ngram_range=(1, 2)        # Unigrams and bigrams
+    stop_words='spanish',     # Remover palabras vacías en español
+    min_df=2,                 # Ignorar términos en menos de 2 documentos
+    ngram_range=(1, 2)        # Unigramas y bigramas
 )
 
-# BERTopic model
+# Modelo BERTopic
 topic_model = BERTopic(
     embedding_model=embedding_model,
     umap_model=umap_model,
     hdbscan_model=hdbscan_model,
     vectorizer_model=vectorizer_model,
-    language="multilingual",  # or specify "spanish"
+    language="multilingual",  # o especificar "spanish"
     calculate_probabilities=True,
-    min_topic_size=10,        # Minimum topic size
-    nr_topics="auto",         # Auto-reduce similar topics
+    min_topic_size=10,        # Tamaño mínimo de tema
+    nr_topics="auto",         # Auto-reducir temas similares
     verbose=True
 )
 
-# Fit and transform
+# Ajustar y transformar
 topics, probs = topic_model.fit_transform(documents)
 
-# Get topic info
+# Obtener información de temas
 topic_info = topic_model.get_topic_info()
 ```
 
-### Key Parameters Explained
+### Parámetros Clave Explicados
 
-**For ~1,000 documents**:
-- `min_cluster_size=15-50`: Controls number of topics (lower = more topics)
-  - Theoretical max topics = 1000 / min_cluster_size
-  - For 5-15 topics from 1000 docs: use min_cluster_size ~66-200
-  - Start with 15-30 and adjust based on results
+**Para ~1,000 documentos**:
+- `min_cluster_size=15-50`: Controla número de temas (menor = más temas)
+  - Máximo teórico de temas = 1000 / min_cluster_size
+  - Para 5-15 temas de 1000 docs: usar min_cluster_size ~66-200
+  - Comenzar con 15-30 y ajustar basado en resultados
 
-- `min_topic_size=10`: Minimum documents per topic
-  - Lower values create more topics
-  - Default (10) is appropriate for 1000 docs
+- `min_topic_size=10`: Mínimo de documentos por tema
+  - Valores menores crean más temas
+  - El valor por defecto (10) es apropiado para 1000 docs
 
-- `min_samples=5`: Controls outliers
-  - Lower than min_cluster_size reduces "noise" topic (-1)
+- `min_samples=5`: Controla outliers
+  - Menor que min_cluster_size reduce el tema "ruido" (-1)
 
-- `n_neighbors=15`: UMAP locality
-  - Can decrease to 10-12 for smaller datasets
+- `n_neighbors=15`: Localidad UMAP
+  - Puede reducirse a 10-12 para datasets pequeños
 
-### Best Practices
+### Mejores Prácticas
 
-1. **Reproducibility**: Always set `random_state=42` in UMAP
-2. **Stop Words**: Use Spanish stop words in CountVectorizer
-3. **Translation vs Multilingual**: Multilingual model works well, but translating all text to one language may improve results slightly
-4. **Parameter Tuning**: Adjust `min_cluster_size` first to control topic count
-5. **Topic Reduction**: Use `nr_topics="auto"` or specify exact number to merge similar topics
+1. **Reproducibilidad**: Siempre establecer `random_state=42` en UMAP
+2. **Palabras Vacías**: Usar palabras vacías en español en CountVectorizer
+3. **Traducción vs Multilingüe**: El modelo multilingüe funciona bien, pero traducir todo el texto a un idioma puede mejorar ligeramente los resultados
+4. **Ajuste de Parámetros**: Ajustar `min_cluster_size` primero para controlar el conteo de temas
+5. **Reducción de Temas**: Usar `nr_topics="auto"` o especificar número exacto para fusionar temas similares
 
-### Regional Spanish Handling
+### Manejo del Español Regional
 
-BERTopic with multilingual embeddings should handle regional Spanish variations well:
-- The embedding model captures semantic meaning across dialects
-- No significant degradation expected between regions for topic clustering
-- Topic labels/keywords may vary by region but topics should cluster consistently
+BERTopic con embeddings multilingües debería manejar bien las variaciones del español regional:
+- El modelo de embedding captura el significado semántico entre dialectos
+- No se espera degradación significativa entre regiones para clustering de temas
+- Las etiquetas/palabras clave de temas pueden variar por región pero los temas deberían agruparse consistentemente
 
-### Expected Accuracy
+### Precisión Esperada
 
-With proper tuning:
-- **5-15 topics from 1,000 docs**: Achievable
-- **>70% accuracy**: Depends on data quality and homogeneity
-- **Challenge**: Small dataset size may limit topic coherence
-- **Mitigation**: Consider aggregating to weekly batches (7,000 docs) for better topic detection
+Con ajuste apropiado:
+- **5-15 temas de 1,000 docs**: Alcanzable
+- **>70% de precisión**: Depende de la calidad y homogeneidad de los datos
+- **Desafío**: El tamaño pequeño del dataset puede limitar la coherencia de temas
+- **Mitigación**: Considerar agregar en lotes semanales (7,000 docs) para mejor detección de temas
 
-### Recommendation
+### Recomendación
 
-**Use BERTopic with paraphrase-multilingual-MiniLM-L12-v2**:
-- Free and open source
-- Good performance on Spanish
-- Handles regional variations well
-- Configure for small dataset (1,000 docs)
-- Monitor topic coherence and adjust parameters
+**Usar BERTopic con paraphrase-multilingual-MiniLM-L12-v2**:
+- Gratuito y de código abierto
+- Buen rendimiento en español
+- Maneja bien variaciones regionales
+- Configurar para dataset pequeño (1,000 docs)
+- Monitorear coherencia de temas y ajustar parámetros
 
-**Alternative Approach**: If 1,000 docs proves too small:
-- Batch weekly (7,000 docs from 7 days retention)
-- Run topic modeling on larger aggregations
-- Assign daily content to detected weekly topics
+**Enfoque Alternativo**: Si 1,000 docs resulta demasiado pequeño:
+- Agrupar semanalmente (7,000 docs de 7 días de retención)
+- Ejecutar modelado de temas en agregaciones más grandes
+- Asignar contenido diario a temas semanales detectados
 
-## 4. Sentiment Analysis
+## 4. Análisis de Sentimiento
 
-### Recommended Approaches
+### Enfoques Recomendados
 
-#### Option 1: pysentimiento (Recommended for Social Media)
+#### Opción 1: pysentimiento (Recomendado para Redes Sociales)
 
-**Model**: pysentimiento/robertuito-sentiment-analysis
-**Training**: TASS 2020 corpus (~5k tweets) of several Spanish dialects
+**Modelo**: pysentimiento/robertuito-sentiment-analysis
+**Entrenamiento**: Corpus TASS 2020 (~5k tweets) de varios dialectos del español
 **Base**: RoBERTuito (600M tweets)
 
-**Regional Support**:
-- Explicitly supports multiple Spanish dialects
-- Argentina, Colombia case studies documented
-- Designed for social media Spanish
+**Soporte Regional**:
+- Soporta explícitamente múltiples dialectos del español
+- Casos de estudio documentados en Argentina, Colombia
+- Diseñado para español de redes sociales
 
-**Output Scale**: Can be adapted to -1 to +1 scale
+**Escala de Salida**: Puede adaptarse a escala -1 a +1
 
-**Usage**:
+**Uso**:
 ```python
 from pysentimiento import create_analyzer
 
 analyzer = create_analyzer(task="sentiment", lang="es")
-result = analyzer.predict("Este producto es increíble!")
-# Output: SentimentOutput(output=POS, probas={NEG: 0.05, NEU: 0.1, POS: 0.85})
+result = analyzer.predict("¡Este producto es increíble!")
+# Salida: SentimentOutput(output=POS, probas={NEG: 0.05, NEU: 0.1, POS: 0.85})
 
-# Convert to -1 to +1 scale
+# Convertir a escala -1 a +1
 def to_continuous_sentiment(result):
-    """Convert 3-class sentiment to -1 to +1 scale"""
+    """Convertir sentimiento de 3 clases a escala -1 a +1"""
     probas = result.probas
     sentiment_score = (
         probas.get('POS', 0) * 1.0 +
@@ -298,24 +298,24 @@ def to_continuous_sentiment(result):
     )
     return sentiment_score
 
-score = to_continuous_sentiment(result)  # Returns value in [-1, 1]
+score = to_continuous_sentiment(result)  # Retorna valor en [-1, 1]
 ```
 
 **Pros**:
-- Free and open source
-- Specifically designed for Spanish social media
-- Multi-dialect support
-- Includes other tasks (emotion, hate speech, irony)
+- Gratuito y de código abierto
+- Específicamente diseñado para redes sociales en español
+- Soporte multi-dialecto
+- Incluye otras tareas (emoción, discurso de odio, ironía)
 
-**Cons**:
-- Trained on relatively small corpus (5k tweets)
-- 3-class output (needs conversion to continuous scale)
+**Contras**:
+- Entrenado en corpus relativamente pequeño (5k tweets)
+- Salida de 3 clases (necesita conversión a escala continua)
 
-#### Option 2: BETO Fine-tuned Models
+#### Opción 2: Modelos BETO Afinados
 
-**Model**: edumunozsala/beto_sentiment_analysis_es or similar fine-tuned BETO
+**Modelo**: edumunozsala/beto_sentiment_analysis_es o BETO afinado similar
 
-**Usage**:
+**Uso**:
 ```python
 from transformers import pipeline
 
@@ -324,26 +324,26 @@ sentiment_analyzer = pipeline(
     model="edumunozsala/beto_sentiment_analysis_es"
 )
 
-result = sentiment_analyzer("Este producto es increíble!")
-# Returns label and score
+result = sentiment_analyzer("¡Este producto es increíble!")
+# Retorna etiqueta y puntuación
 ```
 
 **Pros**:
-- BETO is robust general Spanish model
-- Multiple fine-tuned variants available
-- Good for mixed formal/informal content
+- BETO es un modelo robusto de español general
+- Múltiples variantes afinadas disponibles
+- Bueno para contenido mixto formal/informal
 
-**Cons**:
-- Not specifically optimized for social media
-- Regional dialect support less explicit
+**Contras**:
+- No optimizado específicamente para redes sociales
+- Soporte de dialecto regional menos explícito
 
-#### Option 3: Multilingual Models
+#### Opción 3: Modelos Multilingües
 
-**Model**: nlptown/bert-base-multilingual-uncased-sentiment
+**Modelo**: nlptown/bert-base-multilingual-uncased-sentiment
 
-**Output**: 1-5 stars (easily convertible to -1 to +1)
+**Salida**: 1-5 estrellas (fácilmente convertible a -1 a +1)
 
-**Usage**:
+**Uso**:
 ```python
 from transformers import pipeline
 
@@ -352,64 +352,64 @@ sentiment_analyzer = pipeline(
     model="nlptown/bert-base-multilingual-uncased-sentiment"
 )
 
-result = sentiment_analyzer("Este producto es increíble!")
-# Output: 5 stars
+result = sentiment_analyzer("¡Este producto es increíble!")
+# Salida: 5 estrellas
 
-# Convert to -1 to +1 scale
+# Convertir a escala -1 a +1
 def stars_to_sentiment(stars):
-    """Convert 1-5 stars to -1 to +1 scale"""
+    """Convertir 1-5 estrellas a escala -1 a +1"""
     return (stars - 3) / 2  # 1->-1, 2->-0.5, 3->0, 4->0.5, 5->1
 
-score = stars_to_sentiment(5)  # Returns 1.0
+score = stars_to_sentiment(5)  # Retorna 1.0
 ```
 
 **Pros**:
-- Supports 20+ languages including Spanish
-- 5-class output gives more granularity
-- Free for research and commercial use
+- Soporta 20+ idiomas incluyendo español
+- Salida de 5 clases da más granularidad
+- Gratuito para uso en investigación y comercial
 
-**Cons**:
-- Not Spanish-specific
-- Trained on product reviews (may not match social media tone)
+**Contras**:
+- No específico para español
+- Entrenado en reseñas de productos (puede no coincidir con tono de redes sociales)
 
-#### Option 4: Direct Polarity Scoring
+#### Opción 4: Puntuación Directa de Polaridad
 
-For a true -1 to +1 continuous scale, consider using sentiment models that output probabilities and combining them:
+Para una verdadera escala continua -1 a +1, considera usar modelos de sentimiento que producen probabilidades y combinarlas:
 
 ```python
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
-# Load model
+# Cargar modelo
 tokenizer = AutoTokenizer.from_pretrained("finiteautomata/beto-sentiment-analysis")
 model = AutoModelForSequenceClassification.from_pretrained("finiteautomata/beto-sentiment-analysis")
 
 def get_sentiment_score(text):
-    """Get continuous sentiment score from -1 to 1"""
+    """Obtener puntuación continua de sentimiento de -1 a 1"""
     inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
     outputs = model(**inputs)
     probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
 
-    # Assuming 3 classes: [NEG, NEU, POS]
+    # Asumiendo 3 clases: [NEG, NEU, POS]
     neg, neu, pos = probs[0].tolist()
 
-    # Calculate weighted score
+    # Calcular puntuación ponderada
     sentiment_score = pos * 1.0 + neu * 0.0 + neg * -1.0
     return sentiment_score
 
-score = get_sentiment_score("Este producto es increíble!")
+score = get_sentiment_score("¡Este producto es increíble!")
 ```
 
-### Recommendation for Your Project
+### Recomendación para Tu Proyecto
 
-**Use pysentimiento with RoBERTuito**:
-- Best fit for social media content
-- Explicit multi-dialect Spanish support (Colombia, Mexico, Argentina)
-- Free and open source
-- Easy to convert to -1 to +1 scale
-- Includes additional analysis options (emotion, hate speech)
+**Usar pysentimiento con RoBERTuito**:
+- Mejor ajuste para contenido de redes sociales
+- Soporte explícito multi-dialecto español (Colombia, México, Argentina)
+- Gratuito y de código abierto
+- Fácil de convertir a escala -1 a +1
+- Incluye opciones adicionales de análisis (emoción, discurso de odio)
 
-**Code Integration**:
+**Integración de Código**:
 ```python
 from pysentimiento import create_analyzer
 
@@ -419,8 +419,8 @@ class SocialMediaSentimentAnalyzer:
 
     def analyze(self, text):
         """
-        Analyze sentiment of Spanish text
-        Returns continuous score from -1 (negative) to +1 (positive)
+        Analizar sentimiento de texto en español
+        Retorna puntuación continua de -1 (negativo) a +1 (positivo)
         """
         result = self.analyzer.predict(text)
         probas = result.probas
@@ -437,44 +437,44 @@ class SocialMediaSentimentAnalyzer:
             'probabilities': probas
         }
 
-# Usage
+# Uso
 analyzer = SocialMediaSentimentAnalyzer()
 result = analyzer.analyze("¡Me encanta este video!")
-print(f"Sentiment: {result['score']:.2f}")  # e.g., 0.85
+print(f"Sentimiento: {result['score']:.2f}")  # ej., 0.85
 ```
 
-### Regional Performance
+### Rendimiento Regional
 
-Based on research:
-- pysentimiento trained on TASS 2020 with "several dialects of Spanish"
-- RoBERTuito trained on 600M tweets from diverse regions
-- **Expected degradation**: <5% between regions (well within your <10% requirement)
+Basado en investigación:
+- pysentimiento entrenado en TASS 2020 con "varios dialectos del español"
+- RoBERTuito entrenado en 600M tweets de regiones diversas
+- **Degradación esperada**: <5% entre regiones (bien dentro de tu requisito <10%)
 
-## 5. Named Entity Recognition (NER)
+## 5. Reconocimiento de Entidades Nombradas (NER)
 
-### Option 1: PlanTL-GOB-ES RoBERTa NER (Recommended)
+### Opción 1: PlanTL-GOB-ES RoBERTa NER (Recomendado)
 
-**Model**: PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus
-**Training**: Fine-tuned from RoBERTa pre-trained on 570GB Spanish text
-**Entities**: Locations, Organizations, People, Miscellaneous
+**Modelo**: PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus
+**Entrenamiento**: Afinado desde RoBERTa preentrenado en 570GB de texto en español
+**Entidades**: Ubicaciones, Organizaciones, Personas, Misceláneas
 
-**Advantages**:
-- More robust with lowercased entities (common in social media)
-- Free and open source (Apache License 2.0)
-- State-of-the-art Spanish NER
-- Government-funded, well-maintained
+**Ventajas**:
+- Más robusto con entidades en minúsculas (común en redes sociales)
+- Gratuito y de código abierto (Licencia Apache 2.0)
+- NER de español de última generación
+- Financiado por el gobierno, bien mantenido
 
-**Usage**:
+**Uso**:
 ```python
 from transformers import pipeline
 
-# Standard version
+# Versión estándar
 ner_pipeline = pipeline(
     "ner",
     model="PlanTL-GOB-ES/roberta-base-bne-capitel-ner"
 )
 
-# Robust version (handles lowercase better)
+# Versión robusta (maneja mejor minúsculas)
 ner_pipeline = pipeline(
     "ner",
     model="PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus"
@@ -483,7 +483,7 @@ ner_pipeline = pipeline(
 text = "Me llamo Francisco Javier y vivo en Madrid."
 entities = ner_pipeline(text)
 
-# Example output:
+# Ejemplo de salida:
 # [
 #   {'entity': 'B-PER', 'score': 0.999, 'word': 'Francisco'},
 #   {'entity': 'I-PER', 'score': 0.998, 'word': 'Javier'},
@@ -491,28 +491,28 @@ entities = ner_pipeline(text)
 # ]
 ```
 
-**Entity Types**:
-- PER: Person
-- LOC: Location
-- ORG: Organization
-- MISC: Miscellaneous
+**Tipos de Entidad**:
+- PER: Persona
+- LOC: Ubicación
+- ORG: Organización
+- MISC: Miscelánea
 
-### Option 2: spaCy es_core_news_lg
+### Opción 2: spaCy es_core_news_lg
 
-**Model**: es_core_news_lg
-**Training**: UD Spanish AnCora + WikiNER
+**Modelo**: es_core_news_lg
+**Entrenamiento**: UD Spanish AnCora + WikiNER
 
-**Advantages**:
-- Integrated pipeline (tokenization, POS, NER, etc.)
-- Easy to use
-- Good for structured text
+**Ventajas**:
+- Pipeline integrado (tokenización, POS, NER, etc.)
+- Fácil de usar
+- Bueno para texto estructurado
 
-**Disadvantages**:
-- Less accurate than transformers for NER
-- Poor at distinguishing entity types
-- Degrades on Latin American variants
+**Desventajas**:
+- Menos preciso que transformers para NER
+- Pobre distinguiendo tipos de entidades
+- Se degrada en variantes latinoamericanas
 
-**Usage**:
+**Uso**:
 ```python
 import spacy
 
@@ -522,16 +522,16 @@ doc = nlp("Me llamo Francisco Javier y vivo en Madrid.")
 for ent in doc.ents:
     print(f"{ent.text}: {ent.label_}")
 
-# Output:
+# Salida:
 # Francisco Javier: PER
 # Madrid: LOC
 ```
 
-### Option 3: BETO Fine-tuned NER
+### Opción 3: BETO Afinado NER
 
-**Model**: mrm8488/bert-spanish-cased-finetuned-ner
+**Modelo**: mrm8488/bert-spanish-cased-finetuned-ner
 
-**Usage**:
+**Uso**:
 ```python
 from transformers import pipeline
 
@@ -545,14 +545,14 @@ text = "Me llamo Francisco Javier y vivo en Madrid."
 entities = ner_pipeline(text)
 ```
 
-### Regional Entity Recognition Challenges
+### Desafíos del Reconocimiento de Entidades Regionales
 
-**Problem**: Regional variations in entity names
-- Colombian locations: Bogotá, Medellín, Cali
-- Mexican locations: CDMX, Guadalajara
-- Argentine locations: Buenos Aires, Córdoba
+**Problema**: Variaciones regionales en nombres de entidades
+- Ubicaciones colombianas: Bogotá, Medellín, Cali
+- Ubicaciones mexicanas: CDMX, Guadalajara
+- Ubicaciones argentinas: Buenos Aires, Córdoba
 
-**Solution**: Custom dictionaries + model predictions
+**Solución**: Diccionarios personalizados + predicciones del modelo
 
 ```python
 from transformers import pipeline
@@ -565,7 +565,7 @@ class RegionalNER:
             aggregation_strategy="simple"
         )
 
-        # Custom regional entity dictionaries
+        # Diccionarios de entidades regionales personalizados
         self.colombia_locations = {
             "bogotá", "medellín", "cali", "barranquilla",
             "cartagena", "cúcuta", "bucaramanga"
@@ -582,11 +582,11 @@ class RegionalNER:
         }
 
     def extract_entities(self, text, country=None):
-        """Extract entities with regional context"""
-        # Get model predictions
+        """Extraer entidades con contexto regional"""
+        # Obtener predicciones del modelo
         entities = self.ner(text)
 
-        # Enhance with regional dictionaries
+        # Mejorar con diccionarios regionales
         text_lower = text.lower()
 
         if country == "colombia":
@@ -598,10 +598,10 @@ class RegionalNER:
         else:
             locations = set()
 
-        # Add missing regional entities
+        # Agregar entidades regionales faltantes
         for location in locations:
             if location in text_lower:
-                # Add if not already detected
+                # Agregar si no está ya detectada
                 if not any(e['word'].lower() == location for e in entities):
                     entities.append({
                         'entity_group': 'LOC',
@@ -612,31 +612,31 @@ class RegionalNER:
 
         return entities
 
-# Usage
+# Uso
 ner = RegionalNER()
 text = "Las startups en Bogotá están creciendo rápidamente"
 entities = ner.extract_entities(text, country="colombia")
 ```
 
-### Recommendation for Your Project
+### Recomendación para Tu Proyecto
 
-**Primary: PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus**
-- Best accuracy for Spanish NER
-- Handles social media text (lowercase) well
-- Free and open source
-- Extract: locations, organizations, people
+**Primario: PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus**
+- Mejor precisión para NER en español
+- Maneja bien texto de redes sociales (minúsculas)
+- Gratuito y de código abierto
+- Extrae: ubicaciones, organizaciones, personas
 
-**Enhancement: Regional Dictionaries**
-- Create custom dictionaries for Colombian, Mexican, Argentine locations
-- Improves recall for region-specific entities
-- Addresses model's European Spanish bias
+**Mejora: Diccionarios Regionales**
+- Crear diccionarios personalizados para ubicaciones colombianas, mexicanas, argentinas
+- Mejora el recall para entidades específicas de región
+- Aborda el sesgo del modelo hacia español europeo
 
-**Expected Performance**:
-- Base model: ~87% F1-score on standard Spanish
-- With regional dictionaries: Should maintain <10% degradation across regions
-- Social media text: May drop 5-10% due to informal language
+**Rendimiento Esperado**:
+- Modelo base: ~87% puntuación F1 en español estándar
+- Con diccionarios regionales: Debería mantener <10% degradación entre regiones
+- Texto de redes sociales: Puede caer 5-10% debido a lenguaje informal
 
-### Integration Example
+### Ejemplo de Integración
 
 ```python
 from transformers import pipeline
@@ -649,22 +649,22 @@ class SpanishNER:
             aggregation_strategy="simple"
         )
 
-        # Regional dictionaries (load from config/database)
+        # Diccionarios regionales (cargar desde config/base de datos)
         self.regional_entities = self._load_regional_entities()
 
     def extract_entities(self, text, region=None):
         """
-        Extract named entities from Spanish text
-        Returns: {
+        Extraer entidades nombradas de texto en español
+        Retorna: {
             'locations': [...],
             'organizations': [...],
             'people': [...]
         }
         """
-        # Get model predictions
+        # Obtener predicciones del modelo
         entities = self.ner(text)
 
-        # Organize by type
+        # Organizar por tipo
         result = {
             'locations': [],
             'organizations': [],
@@ -690,7 +690,7 @@ class SpanishNER:
                     'confidence': entity['score']
                 })
 
-        # Enhance with regional dictionaries if region specified
+        # Mejorar con diccionarios regionales si se especifica región
         if region:
             result = self._enhance_with_regional_entities(
                 text, result, region
@@ -699,7 +699,7 @@ class SpanishNER:
         return result
 
     def _load_regional_entities(self):
-        # Load from config/database
+        # Cargar desde config/base de datos
         return {
             'colombia': {
                 'locations': ['Bogotá', 'Medellín', 'Cali', ...],
@@ -716,57 +716,57 @@ class SpanishNER:
         }
 
     def _enhance_with_regional_entities(self, text, result, region):
-        # Add region-specific entities not caught by model
-        # Implementation depends on your dictionary structure
+        # Agregar entidades específicas de región no capturadas por el modelo
+        # La implementación depende de tu estructura de diccionario
         return result
 ```
 
-## 6. Cross-Model Comparison
+## 6. Comparación Entre Modelos
 
-| Task | Model | Type | Social Media Optimized | Regional Support | Free/OSS | Recommendation |
+| Tarea | Modelo | Tipo | Optimizado para Redes Sociales | Soporte Regional | Gratuito/OSS | Recomendación |
 |------|-------|------|----------------------|-----------------|----------|----------------|
-| **Topic Modeling** | BERTopic + paraphrase-multilingual-MiniLM-L12-v2 | Clustering | Yes | Excellent | Yes | **Primary** |
-| **Sentiment** | pysentimiento (RoBERTuito) | Transformer | Yes | Excellent | Yes | **Primary** |
-| **Sentiment** | BETO fine-tuned | Transformer | Moderate | Good | Yes | Alternative |
-| **Sentiment** | Multilingual BERT | Transformer | No | Good | Yes | Fallback |
-| **NER** | PlanTL-GOB-ES RoBERTa | Transformer | Moderate | Good | Yes | **Primary** |
-| **NER** | spaCy es_core_news_lg | Pipeline | No | Moderate | Yes | Alternative |
-| **Base Embeddings** | RoBERTuito | Transformer | Yes | Excellent | Yes | Social media |
-| **Base Embeddings** | BETO | Transformer | Moderate | Good | Yes | General text |
-| **Base Embeddings** | MarIA/RoBERTa-BNE | Transformer | No | Good | Yes | Formal text |
+| **Modelado de Temas** | BERTopic + paraphrase-multilingual-MiniLM-L12-v2 | Clustering | Sí | Excelente | Sí | **Primario** |
+| **Sentimiento** | pysentimiento (RoBERTuito) | Transformer | Sí | Excelente | Sí | **Primario** |
+| **Sentimiento** | BETO afinado | Transformer | Moderado | Bueno | Sí | Alternativa |
+| **Sentimiento** | BERT Multilingüe | Transformer | No | Bueno | Sí | Respaldo |
+| **NER** | PlanTL-GOB-ES RoBERTa | Transformer | Moderado | Bueno | Sí | **Primario** |
+| **NER** | spaCy es_core_news_lg | Pipeline | No | Moderado | Sí | Alternativa |
+| **Embeddings Base** | RoBERTuito | Transformer | Sí | Excelente | Sí | Redes sociales |
+| **Embeddings Base** | BETO | Transformer | Moderado | Bueno | Sí | Texto general |
+| **Embeddings Base** | MarIA/RoBERTa-BNE | Transformer | No | Bueno | Sí | Texto formal |
 
-## 7. Regional Performance Summary
+## 7. Resumen de Rendimiento Regional
 
-### Expected Precision Across Regions
+### Precisión Esperada Entre Regiones
 
-Based on research findings:
+Basado en hallazgos de investigación:
 
-| Task | European Spanish | Latin American Spanish | Degradation | Meets <10% Requirement |
+| Tarea | Español Europeo | Español Latinoamericano | Degradación | Cumple Requisito <10% |
 |------|-----------------|----------------------|-------------|----------------------|
-| Topic Modeling (BERTopic) | Baseline | -0% to -5% | Minimal | Yes |
-| Sentiment (pysentimiento) | Baseline | -3% to -7% | Low | Yes |
-| Sentiment (BETO) | Baseline | -5% to -10% | Moderate | Borderline |
-| NER (PlanTL RoBERTa) | Baseline | -8% to -12% | Moderate | Borderline |
-| NER (spaCy) | Baseline | -15% to -20% | High | No |
-| NER (with dictionaries) | Baseline | -5% to -10% | Low-Moderate | Yes |
+| Modelado de Temas (BERTopic) | Línea base | -0% a -5% | Mínima | Sí |
+| Sentimiento (pysentimiento) | Línea base | -3% a -7% | Baja | Sí |
+| Sentimiento (BETO) | Línea base | -5% a -10% | Moderada | Límite |
+| NER (PlanTL RoBERTa) | Línea base | -8% a -12% | Moderada | Límite |
+| NER (spaCy) | Línea base | -15% a -20% | Alta | No |
+| NER (con diccionarios) | Línea base | -5% a -10% | Baja-Moderada | Sí |
 
-**Key Insights**:
-1. **Topic Modeling**: Semantic embeddings handle regional variations well
-2. **Sentiment Analysis**: pysentimiento explicitly supports multiple dialects
-3. **NER**: Biggest challenge; requires regional enhancement
-4. **Mitigation**: Regional dictionaries essential for NER
+**Hallazgos Clave**:
+1. **Modelado de Temas**: Los embeddings semánticos manejan bien variaciones regionales
+2. **Análisis de Sentimiento**: pysentimiento soporta explícitamente múltiples dialectos
+3. **NER**: Mayor desafío; requiere mejora regional
+4. **Mitigación**: Diccionarios regionales esenciales para NER
 
-### Recommendations for <10% Degradation
+### Recomendaciones para Degradación <10%
 
-1. **Use social media-optimized models**: RoBERTuito over BETO/MarIA
-2. **Implement regional dictionaries**: Critical for NER
-3. **Test extensively**: Validate with samples from each region
-4. **Monitor performance**: Track metrics by region
-5. **Hybrid approach**: Combine model predictions with rule-based enhancements
+1. **Usar modelos optimizados para redes sociales**: RoBERTuito sobre BETO/MarIA
+2. **Implementar diccionarios regionales**: Crítico para NER
+3. **Probar extensivamente**: Validar con muestras de cada región
+4. **Monitorear rendimiento**: Rastrear métricas por región
+5. **Enfoque híbrido**: Combinar predicciones del modelo con mejoras basadas en reglas
 
-## 8. Complete Implementation Example
+## 8. Ejemplo de Implementación Completa
 
-### Integrated Spanish NLP Pipeline
+### Pipeline Integrado de NLP en Español
 
 ```python
 from bertopic import BERTopic
@@ -779,12 +779,12 @@ from sklearn.feature_extraction.text import CountVectorizer
 
 class SpanishSocialMediaNLP:
     """
-    Complete NLP pipeline for Spanish social media analysis
-    Handles topic modeling, sentiment analysis, and NER
+    Pipeline completo de NLP para análisis de redes sociales en español
+    Maneja modelado de temas, análisis de sentimiento y NER
     """
 
     def __init__(self):
-        # Topic Modeling
+        # Modelado de Temas
         self.embedding_model = SentenceTransformer(
             "paraphrase-multilingual-MiniLM-L12-v2"
         )
@@ -823,29 +823,29 @@ class SpanishSocialMediaNLP:
             verbose=False
         )
 
-        # Sentiment Analysis
+        # Análisis de Sentimiento
         self.sentiment_analyzer = create_analyzer(task="sentiment", lang="es")
 
-        # Named Entity Recognition
+        # Reconocimiento de Entidades Nombradas
         self.ner = pipeline(
             "ner",
             model="PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus",
             aggregation_strategy="simple"
         )
 
-        # Regional dictionaries (load from config)
+        # Diccionarios regionales (cargar desde config)
         self.regional_entities = self._load_regional_entities()
 
     def analyze_topics(self, documents):
         """
-        Identify topics in documents
+        Identificar temas en documentos
 
         Args:
-            documents: List of text strings
+            documents: Lista de strings de texto
 
         Returns:
-            topics: List of topic IDs per document
-            topic_info: DataFrame with topic details
+            topics: Lista de IDs de tema por documento
+            topic_info: DataFrame con detalles de temas
         """
         topics, probs = self.topic_model.fit_transform(documents)
         topic_info = self.topic_model.get_topic_info()
@@ -854,20 +854,20 @@ class SpanishSocialMediaNLP:
             'topics': topics,
             'probabilities': probs,
             'topic_info': topic_info,
-            'num_topics': len(topic_info) - 1  # Exclude -1 (outliers)
+            'num_topics': len(topic_info) - 1  # Excluir -1 (outliers)
         }
 
     def analyze_sentiment(self, text):
         """
-        Analyze sentiment on -1 to +1 scale
+        Analizar sentimiento en escala -1 a +1
 
         Args:
-            text: Spanish text string
+            text: String de texto en español
 
         Returns:
-            score: Float from -1 (negative) to +1 (positive)
-            label: 'POS', 'NEU', or 'NEG'
-            probabilities: Dict with class probabilities
+            score: Float de -1 (negativo) a +1 (positivo)
+            label: 'POS', 'NEU', o 'NEG'
+            probabilities: Dict con probabilidades de clase
         """
         result = self.sentiment_analyzer.predict(text)
         probas = result.probas
@@ -890,19 +890,19 @@ class SpanishSocialMediaNLP:
 
     def extract_entities(self, text, region=None):
         """
-        Extract named entities (locations, organizations, people)
+        Extraer entidades nombradas (ubicaciones, organizaciones, personas)
 
         Args:
-            text: Spanish text string
-            region: Optional region code ('colombia', 'mexico', 'argentina')
+            text: String de texto en español
+            region: Código de región opcional ('colombia', 'mexico', 'argentina')
 
         Returns:
-            Dict with lists of locations, organizations, people
+            Dict con listas de ubicaciones, organizaciones, personas
         """
-        # Get model predictions
+        # Obtener predicciones del modelo
         entities = self.ner(text)
 
-        # Organize by type
+        # Organizar por tipo
         result = {
             'locations': [],
             'organizations': [],
@@ -924,7 +924,7 @@ class SpanishSocialMediaNLP:
             elif entity_type == 'PER':
                 result['people'].append(entity_data)
 
-        # Enhance with regional dictionaries
+        # Mejorar con diccionarios regionales
         if region and region in self.regional_entities:
             result = self._enhance_with_regional_entities(
                 text, result, region
@@ -934,14 +934,14 @@ class SpanishSocialMediaNLP:
 
     def analyze_content(self, text, region=None):
         """
-        Complete analysis: sentiment + entities
+        Análisis completo: sentimiento + entidades
 
         Args:
-            text: Spanish text string
-            region: Optional region code
+            text: String de texto en español
+            region: Código de región opcional
 
         Returns:
-            Dict with sentiment and entity analysis
+            Dict con análisis de sentimiento y entidades
         """
         return {
             'sentiment': self.analyze_sentiment(text),
@@ -952,14 +952,14 @@ class SpanishSocialMediaNLP:
 
     def batch_analyze(self, documents, regions=None):
         """
-        Analyze multiple documents
+        Analizar múltiples documentos
 
         Args:
-            documents: List of text strings
-            regions: Optional list of region codes (same length as documents)
+            documents: Lista de strings de texto
+            regions: Lista opcional de códigos de región (misma longitud que documents)
 
         Returns:
-            List of analysis results
+            Lista de resultados de análisis
         """
         if regions is None:
             regions = [None] * len(documents)
@@ -971,7 +971,7 @@ class SpanishSocialMediaNLP:
         return results
 
     def _load_regional_entities(self):
-        """Load regional entity dictionaries"""
+        """Cargar diccionarios de entidades regionales"""
         return {
             'colombia': {
                 'locations': [
@@ -1009,11 +1009,11 @@ class SpanishSocialMediaNLP:
         }
 
     def _enhance_with_regional_entities(self, text, result, region):
-        """Enhance entity detection with regional dictionaries"""
+        """Mejorar detección de entidades con diccionarios regionales"""
         text_lower = text.lower()
         regional_data = self.regional_entities.get(region, {})
 
-        # Add missing locations
+        # Agregar ubicaciones faltantes
         all_locations = (
             regional_data.get('locations', []) +
             regional_data.get('regions', [])
@@ -1021,7 +1021,7 @@ class SpanishSocialMediaNLP:
 
         for location in all_locations:
             if location.lower() in text_lower:
-                # Check if not already detected
+                # Verificar si no está ya detectada
                 existing_texts = [e['text'].lower() for e in result['locations']]
                 if location.lower() not in existing_texts:
                     result['locations'].append({
@@ -1033,12 +1033,12 @@ class SpanishSocialMediaNLP:
         return result
 
 
-# Usage Example
+# Ejemplo de Uso
 if __name__ == "__main__":
-    # Initialize pipeline
+    # Inicializar pipeline
     nlp = SpanishSocialMediaNLP()
 
-    # Example documents
+    # Documentos de ejemplo
     documents = [
         "Increíble video sobre inversión en bolsa, aprendí mucho!",
         "Me encanta ahorrar para mi casa nueva en Bogotá",
@@ -1047,147 +1047,147 @@ if __name__ == "__main__":
         "Las criptomonedas están revolucionando el mercado argentino"
     ]
 
-    # Topic modeling
-    print("=== TOPIC MODELING ===")
+    # Modelado de temas
+    print("=== MODELADO DE TEMAS ===")
     topic_results = nlp.analyze_topics(documents)
-    print(f"Topics detected: {topic_results['num_topics']}")
+    print(f"Temas detectados: {topic_results['num_topics']}")
     print(topic_results['topic_info'])
 
-    # Individual content analysis
-    print("\n=== CONTENT ANALYSIS ===")
+    # Análisis de contenido individual
+    print("\n=== ANÁLISIS DE CONTENIDO ===")
     for doc in documents[:2]:
-        print(f"\nText: {doc}")
+        print(f"\nTexto: {doc}")
         analysis = nlp.analyze_content(doc, region='colombia')
-        print(f"Sentiment: {analysis['sentiment']['score']:.2f} ({analysis['sentiment']['label']})")
-        print(f"Entities: {analysis['entities']}")
+        print(f"Sentimiento: {analysis['sentiment']['score']:.2f} ({analysis['sentiment']['label']})")
+        print(f"Entidades: {analysis['entities']}")
 
-    # Batch analysis
-    print("\n=== BATCH ANALYSIS ===")
+    # Análisis en lote
+    print("\n=== ANÁLISIS EN LOTE ===")
     regions = ['colombia', 'colombia', None, 'mexico', 'argentina']
     batch_results = nlp.batch_analyze(documents, regions)
 
-    # Calculate average sentiment
+    # Calcular sentimiento promedio
     avg_sentiment = sum(r['sentiment']['score'] for r in batch_results) / len(batch_results)
-    print(f"Average sentiment: {avg_sentiment:.2f}")
+    print(f"Sentimiento promedio: {avg_sentiment:.2f}")
 ```
 
-## 9. Final Recommendations Summary
+## 9. Resumen de Recomendaciones Finales
 
-### spaCy Model
-**Recommended**: `es_core_news_lg`
-- **Pros**: Best accuracy among spaCy models, includes word vectors
-- **Cons**: 10-20% degradation on Latin American Spanish
-- **Use For**: General NLP pipeline, POS tagging, dependency parsing
-- **Alternative**: Use for preprocessing; rely on transformers for critical tasks
+### Modelo spaCy
+**Recomendado**: `es_core_news_lg`
+- **Pros**: Mejor precisión entre modelos spaCy, incluye vectores de palabras
+- **Contras**: 10-20% degradación en español latinoamericano
+- **Usar Para**: Pipeline NLP general, etiquetado POS, análisis de dependencias
+- **Alternativa**: Usar para preprocesamiento; confiar en transformers para tareas críticas
 
-### BERT Model
-**Recommended**: **RoBERTuito** (pysentimiento/robertuito-base-uncased)
-- **Pros**: Optimized for social media, multi-dialect support, best for your use case
-- **Cons**: Less formal than BETO
-- **Use For**: Embeddings, sentiment analysis, social media classification
-- **Alternative**: BETO for more formal content
+### Modelo BERT
+**Recomendado**: **RoBERTuito** (pysentimiento/robertuito-base-uncased)
+- **Pros**: Optimizado para redes sociales, soporte multi-dialecto, mejor para tu caso de uso
+- **Contras**: Menos formal que BETO
+- **Usar Para**: Embeddings, análisis de sentimiento, clasificación de redes sociales
+- **Alternativa**: BETO para contenido más formal
 
-### BERTopic Configuration
-**Recommended Settings**:
+### Configuración BERTopic
+**Configuración Recomendada**:
 ```python
 BERTopic(
     embedding_model="paraphrase-multilingual-MiniLM-L12-v2",
     language="multilingual",
     min_topic_size=10,
-    min_cluster_size=20-30,  # Adjust for 5-15 topics from 1000 docs
+    min_cluster_size=20-30,  # Ajustar para 5-15 temas de 1000 docs
     nr_topics="auto",
     calculate_probabilities=True
 )
 ```
-- **Expected**: 5-15 topics from 1,000 items
-- **Accuracy**: >70% achievable with tuning
-- **Challenge**: Small dataset; consider weekly batches (7,000 docs)
+- **Esperado**: 5-15 temas de 1,000 elementos
+- **Precisión**: >70% alcanzable con ajuste
+- **Desafío**: Dataset pequeño; considerar lotes semanales (7,000 docs)
 
-### Sentiment Analysis
-**Recommended**: **pysentimiento** (RoBERTuito-based)
-- **Scale**: -1 to +1 (via probability weighting)
-- **Regional**: <5% degradation across regions
-- **Code**:
+### Análisis de Sentimiento
+**Recomendado**: **pysentimiento** (basado en RoBERTuito)
+- **Escala**: -1 a +1 (vía ponderación de probabilidades)
+- **Regional**: <5% degradación entre regiones
+- **Código**:
 ```python
 from pysentimiento import create_analyzer
 analyzer = create_analyzer(task="sentiment", lang="es")
 result = analyzer.predict(text)
-score = result.probas['POS'] - result.probas['NEG']  # -1 to +1
+score = result.probas['POS'] - result.probas['NEG']  # -1 a +1
 ```
 
-### Named Entity Recognition
-**Recommended**: **PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus** + Regional Dictionaries
-- **Entities**: Locations, Organizations, People
-- **Enhancement**: Regional dictionaries for Colombia/Mexico/Argentina locations
-- **Expected**: <10% degradation with dictionary enhancement
-- **Code**:
+### Reconocimiento de Entidades Nombradas
+**Recomendado**: **PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus** + Diccionarios Regionales
+- **Entidades**: Ubicaciones, Organizaciones, Personas
+- **Mejora**: Diccionarios regionales para ubicaciones de Colombia/México/Argentina
+- **Esperado**: <10% degradación con mejora de diccionario
+- **Código**:
 ```python
 from transformers import pipeline
 ner = pipeline("ner", model="PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus")
 entities = ner(text)
 ```
 
-### All Models Are Free and Open Source
-All recommended models meet your FREE requirement:
-- spaCy: MIT License
+### Todos los Modelos Son Gratuitos y de Código Abierto
+Todos los modelos recomendados cumplen tu requisito GRATUITO:
+- spaCy: Licencia MIT
 - RoBERTuito: Apache 2.0
 - BETO: Apache 2.0
-- BERTopic: MIT License
-- pysentimiento: Open source
-- PlanTL-GOB-ES models: Apache 2.0
+- BERTopic: Licencia MIT
+- pysentimiento: Código abierto
+- Modelos PlanTL-GOB-ES: Apache 2.0
 - Sentence Transformers: Apache 2.0
 
-### Regional Performance
-**Expected degradation across Spanish regions**:
-- Topic Modeling: 0-5% (semantic embeddings robust)
-- Sentiment: 3-7% (RoBERTuito multi-dialect trained)
-- NER: 8-12% base; 5-10% with dictionaries
+### Rendimiento Regional
+**Degradación esperada entre regiones del español**:
+- Modelado de Temas: 0-5% (embeddings semánticos robustos)
+- Sentimiento: 3-7% (RoBERTuito entrenado multi-dialecto)
+- NER: 8-12% base; 5-10% con diccionarios
 
-**Meeting <10% requirement**:
-- Topic Modeling: Yes
-- Sentiment: Yes
-- NER: Yes (with regional enhancement)
+**Cumpliendo requisito <10%**:
+- Modelado de Temas: Sí
+- Sentimiento: Sí
+- NER: Sí (con mejora regional)
 
-## 10. Next Steps
+## 10. Próximos Pasos
 
-1. **Install Dependencies**:
+1. **Instalar Dependencias**:
 ```bash
 pip install spacy transformers bertopic pysentimiento sentence-transformers
 python -m spacy download es_core_news_lg
 ```
 
-2. **Prototype Testing**:
-   - Collect sample data from Colombia, Mexico, Argentina
-   - Test each component independently
-   - Measure accuracy by region
+2. **Pruebas de Prototipo**:
+   - Recolectar datos de muestra de Colombia, México, Argentina
+   - Probar cada componente independientemente
+   - Medir precisión por región
 
-3. **Regional Enhancement**:
-   - Build comprehensive regional entity dictionaries
-   - Test NER with regional data
-   - Validate <10% degradation requirement
+3. **Mejora Regional**:
+   - Construir diccionarios completos de entidades regionales
+   - Probar NER con datos regionales
+   - Validar requisito de degradación <10%
 
-4. **Integration**:
-   - Implement SpanishSocialMediaNLP class
-   - Create async processing pipeline
-   - Optimize for 4,000 items/day throughput
+4. **Integración**:
+   - Implementar clase SpanishSocialMediaNLP
+   - Crear pipeline de procesamiento asíncrono
+   - Optimizar para rendimiento de 4,000 elementos/día
 
-5. **Monitoring**:
-   - Track performance metrics by region
-   - A/B test model configurations
-   - Tune BERTopic parameters for optimal topic count
+5. **Monitoreo**:
+   - Rastrear métricas de rendimiento por región
+   - Pruebas A/B de configuraciones de modelo
+   - Ajustar parámetros BERTopic para conteo óptimo de temas
 
-## 11. Code Repository Examples
+## 11. Ejemplos de Repositorios de Código
 
-For reference implementations, see:
+Para implementaciones de referencia, ver:
 - **pysentimiento**: https://github.com/pysentimiento/pysentimiento
 - **BERTopic**: https://github.com/MaartenGr/BERTopic
 - **PlanTL-GOB-ES**: https://github.com/PlanTL-GOB-ES/lm-spanish
-- **spaCy Models**: https://github.com/explosion/spacy-models
+- **Modelos spaCy**: https://github.com/explosion/spacy-models
 
-## 12. References
+## 12. Referencias
 
-### Models and Libraries
-1. spaCy Spanish Models: https://spacy.io/models/es
+### Modelos y Bibliotecas
+1. Modelos spaCy en Español: https://spacy.io/models/es
 2. BETO: https://github.com/dccuchile/beto
 3. RoBERTuito: https://github.com/pysentimiento/robertuito
 4. MarIA (RoBERTa-BNE): https://huggingface.co/PlanTL-GOB-ES/roberta-base-bne
@@ -1196,20 +1196,20 @@ For reference implementations, see:
 7. PlanTL-GOB-ES NER: https://huggingface.co/PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus
 8. Sentence Transformers: https://www.sbert.net/
 
-### Papers
+### Artículos
 1. "Spanish Pre-Trained BERT Model and Evaluation Data" - Cañete et al., PML4DC at ICLR 2020
 2. "RoBERTuito: a pre-trained language model for social media text in Spanish" - arXiv:2111.09453
 3. "MarIA: Spanish Language Models" - Procesamiento del Lenguaje Natural, 2022
 4. "pysentimiento: A Python Toolkit for Opinion Mining and Social NLP tasks" - 2021
 
 ### Benchmarks
-1. TASS (Twitter Sentiment Analysis workshop for Spanish)
-2. SQuAD v2.0 Spanish
-3. UD Spanish-AnCora corpus
-4. WikiNER Spanish dataset
+1. TASS (Twitter Sentiment Analysis workshop para Español)
+2. SQuAD v2.0 Español
+3. Corpus UD Spanish-AnCora
+4. Dataset WikiNER Español
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-11-08
-**Status**: Complete - Ready for Phase 1 (Design Artifacts)
+**Versión del Documento**: 1.0
+**Última Actualización**: 2025-11-08
+**Estado**: Completo - Listo para Fase 1 (Artefactos de Diseño)

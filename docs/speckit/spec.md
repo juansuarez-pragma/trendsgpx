@@ -1,11 +1,11 @@
-# Feature Specification: Sistema de Análisis de Tendencias en Redes Sociales
+# Especificación de Funcionalidad: Sistema de Análisis de Tendencias en Redes Sociales
 
-**Feature Branch**: `001-social-trends-analysis`
-**Created**: 2025-11-08
-**Status**: Draft
-**Input**: User description: "Sistema de análisis de tendencias en redes sociales que identifica, analiza y reporta temas trending en YouTube, TikTok, Instagram y Facebook, con segmentación demográfica detallada por plataforma, ubicación geográfica, rango de edad y género"
+**Rama de Funcionalidad**: `001-social-trends-analysis`
+**Creado**: 2025-11-08
+**Estado**: Borrador
+**Entrada**: Descripción del usuario: "Sistema de análisis de tendencias en redes sociales que identifica, analiza y reporta temas trending en YouTube, TikTok, Instagram y Facebook, con segmentación demográfica detallada por plataforma, ubicación geográfica, rango de edad y género"
 
-## User Scenarios & Testing *(mandatory)*
+## Escenarios de Usuario y Pruebas *(obligatorio)*
 
 ### User Story 1 - Configurar Lineamientos de Análisis (Priority: P1)
 
@@ -162,7 +162,7 @@ Un usuario necesita exportar análisis de tendencias en formatos compartibles (J
 
 ---
 
-### Edge Cases
+### Casos Extremos
 
 - **¿Qué pasa cuando una API de red social está temporalmente caída?**
   - El sistema debe reintentar la conexión automáticamente con backoff exponencial y marcar los datos como "pendientes de recolección"
@@ -185,9 +185,9 @@ Un usuario necesita exportar análisis de tendencias en formatos compartibles (J
 - **¿Qué sucede cuando un usuario consulta datos de un período sin recolección?**
   - El sistema debe retornar respuesta vacía con mensaje claro indicando que no hay datos disponibles para ese período
 
-## Requirements *(mandatory)*
+## Requisitos *(obligatorio)*
 
-### Functional Requirements
+### Requisitos Funcionales
 
 - **FR-001**: System MUST permitir crear, leer, actualizar y eliminar lineamientos (áreas temáticas a analizar)
 - **FR-002**: System MUST permitir configurar para cada lineamiento: nombre, descripción, keywords, hashtags, y plataformas a monitorear
@@ -219,7 +219,7 @@ Un usuario necesita exportar análisis de tendencias en formatos compartibles (J
 - **FR-028**: System MUST exportar resultados en formatos JSON y CSV
 - **FR-029**: System MUST utilizar EXCLUSIVAMENTE herramientas, APIs y bibliotecas que sean gratuitas o que tengan free tiers suficientes (sin costos operacionales recurrentes de APIs de pago)
 
-### Key Entities
+### Entidades Clave
 
 - **Lineamiento**: Representa un área temática a analizar. Atributos: nombre, descripción, keywords (lista), hashtags (lista), plataformas activas (lista), frecuencia de recolección. Relación: tiene muchos contenidos recolectados y temas identificados.
 
@@ -233,9 +233,9 @@ Un usuario necesita exportar análisis de tendencias en formatos compartibles (J
 
 - **Validación de Tendencia**: Representa correlación con datos de búsqueda. Atributos: fuente de validación (ej: Google Trends), volumen de búsquedas, correlación (porcentaje), regiones con alto interés, queries relacionados. Relación: pertenece a un tema.
 
-## Success Criteria *(mandatory)*
+## Criterios de Éxito *(obligatorio)*
 
-### Measurable Outcomes
+### Resultados Medibles
 
 - **SC-001**: El sistema puede recolectar y almacenar al menos 4,000 contenidos por día (1,000 por plataforma) para un lineamiento activo
 - **SC-002**: El sistema identifica automáticamente entre 5-15 temas distintos por cada 1,000 contenidos analizados con precisión >70% (validado por revisión manual de muestra)
@@ -253,7 +253,7 @@ Un usuario necesita exportar análisis de tendencias en formatos compartibles (J
 - **SC-014**: El sistema valida al menos 80% de tendencias detectadas contra Google Trends mostrando correlación >60%
 - **SC-015**: Los reportes exportados contienen 100% de los datos mostrados en consultas web sin pérdida de información
 
-## Assumptions
+## Supuestos
 
 - **Data Availability**: Asumimos que las APIs de redes sociales mantienen endpoints públicos estables. Cambios significativos en APIs requerirán actualización de collectors.
 
@@ -275,7 +275,7 @@ Un usuario necesita exportar análisis de tendencias en formatos compartibles (J
 
 - **User Authentication**: Se asume sistema de autenticación estándar (método a definir en FR-023). Multi-tenancy para múltiples organizaciones puede agregarse en futuras fases.
 
-## Dependencies
+## Dependencias
 
 - **External APIs**: El sistema depende de APIs de YouTube, TikTok, Instagram, Facebook, y Google Trends. Interrupción de cualquier API afecta recolección de esa plataforma pero no detiene el sistema completo.
 
@@ -283,7 +283,7 @@ Un usuario necesita exportar análisis de tendencias en formatos compartibles (J
 
 - **Search Validation Data**: Validación de tendencias depende de disponibilidad continua de Google Trends o servicio equivalente.
 
-## Out of Scope
+## Fuera de Alcance
 
 - **Content Creation**: El sistema analiza contenido existente pero no crea ni publica contenido en redes sociales.
 
