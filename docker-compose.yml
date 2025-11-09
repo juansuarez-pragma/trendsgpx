@@ -1,0 +1,192 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL con TimescaleDB
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: trendsgpx_postgres
+    environment:
+      POSTGRES_DB: trendsgpx
+      POSTGRES_USER: trendsgpx
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trendsgpx_dev_password}
+      TIMESCALEDB_TELEMETRY: "off"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trendsgpx"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - trendsgpx_network
+
+  # Redis para Celery broker y cache
+  redis:
+    image: redis:7-alpine
+    container_name: trendsgpx_redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - trendsgpx_network
+
+  # FastAPI Backend (desarrollo)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trendsgpx_api
+    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://trendsgpx:${POSTGRES_PASSWORD:-trendsgpx_dev_password}@postgres:5432/trendsgpx
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - trendsgpx_network
+
+  # Celery Worker - Colectores (YouTube, Reddit, Mastodon)
+  celery_collector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trendsgpx_celery_collector
+    command: celery -A src.tasks worker -Q youtube_collector,reddit_collector,mastodon_collector --concurrency=100 --pool=gevent --prefetch-multiplier=4 --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://trendsgpx:${POSTGRES_PASSWORD:-trendsgpx_dev_password}@postgres:5432/trendsgpx
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - trendsgpx_network
+
+  # Celery Worker - NLP (procesamiento intensivo CPU)
+  celery_nlp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trendsgpx_celery_nlp
+    command: celery -A src.tasks worker -Q nlp_processing --concurrency=8 --pool=prefork --prefetch-multiplier=1 --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://trendsgpx:${POSTGRES_PASSWORD:-trendsgpx_dev_password}@postgres:5432/trendsgpx
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ./src:/app/src
+      - ./models:/app/models  # Modelos NLP pre-descargados
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - trendsgpx_network
+
+  # Celery Worker - Analytics
+  celery_analytics:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trendsgpx_celery_analytics
+    command: celery -A src.tasks worker -Q analytics --concurrency=4 --prefetch-multiplier=2 --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://trendsgpx:${POSTGRES_PASSWORD:-trendsgpx_dev_password}@postgres:5432/trendsgpx
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - trendsgpx_network
+
+  # Celery Beat - Programador de tareas
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trendsgpx_celery_beat
+    command: celery -A src.tasks beat --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://trendsgpx:${POSTGRES_PASSWORD:-trendsgpx_dev_password}@postgres:5432/trendsgpx
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ./src:/app/src
+      - celerybeat_schedule:/app/celerybeat-schedule
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - trendsgpx_network
+
+  # Flower - Dashboard de monitoreo Celery
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trendsgpx_flower
+    command: celery -A src.tasks flower --port=5555
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    networks:
+      - trendsgpx_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  celerybeat_schedule:
+
+networks:
+  trendsgpx_network:
+    driver: bridge

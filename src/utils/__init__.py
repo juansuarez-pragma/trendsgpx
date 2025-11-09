@@ -1,0 +1,3 @@
+"""
+Utilidades: configuración, logging, helpers
+"""

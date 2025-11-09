@@ -1,0 +1,99 @@
+[tool.poetry]
+name = "trendsgpx-backend"
+version = "1.0.0"
+description = "Sistema de Análisis de Tendencias en Redes Sociales - Backend API"
+authors = ["TrendsGPX Team"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+# Web Framework
+fastapi = "^0.104.0"
+uvicorn = {extras = ["standard"], version = "^0.24.0"}
+pydantic = {extras = ["email"], version = "^2.5.0"}
+pydantic-settings = "^2.1.0"
+
+# Database
+sqlalchemy = "^2.0.23"
+alembic = "^1.13.0"
+psycopg2-binary = "^2.9.9"
+asyncpg = "^0.29.0"
+
+# Task Queue
+celery = {extras = ["redis"], version = "^5.3.4"}
+redis = "^5.0.1"
+flower = "^2.0.1"
+
+# NLP & ML
+spacy = "^3.7.2"
+transformers = "^4.35.0"
+torch = "^2.1.0"
+bertopic = "^0.16.0"
+pysentimiento = "^0.7.0"
+sentence-transformers = "^2.2.2"
+
+# API Clients
+google-api-python-client = "^2.108.0"
+google-auth = "^2.25.0"
+google-auth-oauthlib = "^1.2.0"
+praw = "^7.7.1"
+Mastodon.py = "^1.8.1"
+pytrends = "^4.9.2"
+
+# Rate Limiting
+pyrate-limiter = "^3.1.1"
+
+# Utilities
+python-dotenv = "^1.0.0"
+python-multipart = "^0.0.6"
+httpx = "^0.25.2"
+aiofiles = "^23.2.1"
+openpyxl = "^3.1.2"  # Para exportar Excel
+
+# Monitoring
+prometheus-client = "^0.19.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+pytest-asyncio = "^0.21.1"
+pytest-cov = "^4.1.0"
+pytest-mock = "^3.12.0"
+black = "^23.12.0"
+flake8 = "^6.1.0"
+mypy = "^1.7.1"
+isort = "^5.13.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | alembic
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip = ["alembic"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --cov=src --cov-report=term-missing"
